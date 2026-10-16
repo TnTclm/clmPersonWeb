@@ -69,8 +69,8 @@
 }
 
 .btn-pick:hover {
-  border-color: #2563eb;
-  color: #2563eb;
+  border-color: #0d9488;
+  color: #0d9488;
 }
 
 .pick-note {
@@ -84,7 +84,7 @@
 
 .btn-publish {
   padding: 7px 22px;
-  background: #2563eb;
+  background: #0d9488;
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -93,11 +93,11 @@
 }
 
 .btn-publish:hover {
-  background: #1d4ed8;
+  background: #0f766e;
 }
 
 .btn-publish:disabled {
-  background: #9dc0f5;
+  background: #a7d8d3;
   cursor: not-allowed;
 }
 
@@ -120,8 +120,8 @@
 
 .card-count {
   font-size: 12px;
-  color: #2563eb;
-  background: #eff6ff;
+  color: #0d9488;
+  background: #e6f7f5;
   padding: 3px 10px;
   border-radius: 999px;    /* 胶囊形 */
 }
@@ -284,7 +284,7 @@
 }
 
 .card-edit {
-  color: #2563eb;
+  color: #0d9488;
 }
 
 .card-edit:hover {

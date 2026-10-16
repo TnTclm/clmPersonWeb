@@ -10,18 +10,32 @@ import (
 
 // Package logger 只干一件事：把全局日志系统装好。
 
-// Level 全局日志级别：比它低的日志直接丢掉、不输出。
-// 四级顺序：Debug < Info < Warn < Error（越往后越严重）
-// 阶段0先写死成 Debug（什么都打，方便你观察效果）；
-// 阶段1会改成从 .env 里的 LOG_LEVEL 读，不改代码就能调。
-var Level = slog.LevelDebug
+// ParseLevel 把 .env 里写的字符串（"debug"/"info"/"warn"/"error"）
+// 翻译成 slog 认识的级别常量。
+// 认不出来的值一律当 debug —— 宁可多打点日志，也别把日志静默丢掉。
+//
+// 级别从低到高：Debug < Info < Warn < Error
+// 设成某级后，比它低的日志会被直接丢弃（比如设 Info，Debug 就全不打了）
+func ParseLevel(s string) slog.Level {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "info":
+		return slog.LevelInfo
+	case "warn", "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default: // "debug"，以及任何没见过的值
+		return slog.LevelDebug
+	}
+}
 
-// 初始化日志
-func Init() {
+// 初始化日志。级别由外面传进来（main.go 从 .env 读到后传进来），
+// 这样 logger 包不用认识 config 包，两边互不依赖。
+func Init(level slog.Level) {
 	// ① 造 Handler：它决定「日志长什么样」+「往哪里去」。
 	//    这是 slog 最核心的设计：Logger 只管收，Handler 只管处理。
 	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level:     Level,
+		Level:     level, // 用外面传进来的级别
 		AddSource: true,
 
 		// ReplaceAttr：日志里每个属性写出去之前的"最后一道加工工序"。

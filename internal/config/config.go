@@ -17,7 +17,10 @@ type Config struct {
 	RedisAddr   string
 	RabbitMQURL string
 	JWTSecret   string
-	OwnerID     int // 博主的用户ID：相册上传/删除只有TA可以（.env 里配 OWNER_ID）
+	OwnerID     int    // 博主的用户ID：相册上传/删除只有TA可以（.env 里配 OWNER_ID）
+	PicturesDir string // 主页图片墙的图片文件夹（.env 里配 PICTURES_DIR）
+	LogLevel    string // 日志级别：debug/info/warn/error（.env 里配 LOG_LEVEL）
+	GinMode     string // gin 运行模式：debug/release（.env 里配 GIN_MODE）
 }
 
 var Cfg *Config
@@ -34,7 +37,10 @@ func Load() {
 		RedisAddr:   getEnv("REDIS_ADDR", "localhost:6379"),
 		RabbitMQURL: getEnv("RABBITMQ_URL", "amqp://admin:123456@localhost:5672/"), // ← 新增
 		JWTSecret:   getEnv("JWT_SECRET", "your_jwt_secret"),
-		OwnerID:     getEnvInt("OWNER_ID", 4), //
+		OwnerID:     getEnvInt("OWNER_ID", 4),             //
+		PicturesDir: getEnv("PICTURES_DIR", "./pictures"), // 主页图片墙的图放哪（相对仓库根目录）
+		LogLevel:    getEnv("LOG_LEVEL", "debug"),         // 日志级别：本地 debug，上线 info
+		GinMode:     getEnv("GIN_MODE", "debug"),          // gin 模式：本地 debug，上线 release
 	}
 }
 

@@ -1,6 +1,6 @@
 /* ============================================================
    登录/注册共用样式（两个页面长得像才像一家人，改一处两边一起变）
-   质感配方：16px圆角卡片 + 发丝边 + 双层柔影 + 12px输入框聚焦蓝边 + 胶囊按钮
+   质感配方：16px圆角卡片 + 发丝边 + 双层柔影 + 12px输入框聚焦薄荷青边 + 胶囊按钮
    ============================================================ */
 
 /* ---------- 卡片容器 ---------- */
@@ -35,7 +35,7 @@
 }
 
 .auth-card input:focus {
-  border-color: #2563eb; /* 聚焦蓝边，全站一个语言 */
+  border-color: #0d9488; /* 聚焦边：薄荷青，全站一个语言 */
 }
 
 /* Edge 自带的密码小眼睛关掉（它忽隐忽现不听话），统一用我们自己造的 */
@@ -60,7 +60,7 @@
 .auth-card button {
   width: 100%;
   padding: 10px;
-  background: #2563eb;
+  background: #0d9488;
   color: #fff;
   border: none;
   border-radius: 999px;
@@ -70,7 +70,7 @@
 }
 
 .auth-card button:hover {
-  background: #1d4ed8;
+  background: #0f766e;
   transform: translateY(-1px);
 }
 
@@ -99,7 +99,7 @@
 }
 
 .tip a {
-  color: #2563eb;
+  color: #0d9488;
   text-decoration: none;
 }
 

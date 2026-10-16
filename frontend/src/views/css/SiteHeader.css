@@ -1,15 +1,28 @@
 /* ============================================================
-   SiteHeader.css —— 头部样式（白色简约：白底 + 细分割线 + 蓝色点缀）
+   SiteHeader.css —— 头部样式（白色简约：白底 + 细分割线 + 薄荷青(#0d9488)点缀）
    布局：左头像 ······ 右（导航 | 登录注册）
    ============================================================ */
 
-/* ---------- 头部整体：白色吸顶 ---------- */
+/* ---------- 头部整体：毛玻璃吸顶 ---------- */
 .site-header {
   position: sticky;   /* 吸顶：平时跟着滚，到顶了粘住不动 */
   top: 0;
   z-index: 100;       /* 保证压在其他内容上面 */
-  background: #fff;
-  border-bottom: 1px solid #ececec;
+  /* 毛玻璃三件套：半透明白 + 背景模糊 + 饱和度微调
+     滚动时下面的内容会"糊"着透过来，比纯白板更有层次 */
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(14px) saturate(1.6);
+  -webkit-backdrop-filter: blur(14px) saturate(1.6); /* 给老版 Safari 的写法 */
+  /* 页面在顶部时：零边框零阴影 → 和纯白页面融为一体，不出现"横带" */
+  border-bottom: 1px solid transparent;   /* 透明占位：避免加/去边框时高度跳 1px */
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);     /* 同理：给阴影一个"从无到有"的过渡起点 */
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;  /* 切换状态要平滑 */
+}
+
+/* 滚动离开顶部后（Vue 动态加的 class）：浮出分界线 + 阴影，把头部"托"起来 */
+.site-header.is-scrolled {
+  border-bottom-color: rgba(0, 0, 0, 0.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
 }
 
 /* 内容区：限宽 + 居中，左右两端布局 */
@@ -29,15 +42,8 @@
   align-items: center;
 }
 
-.logo-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;  /* 裁成圆形 */
-  /* object-fit:cover 图片按比例裁剪填满圆框，
-     以后换不方的图也不会被拉变形 */
-  object-fit: cover;
-  display: block;      /* 去掉 img 默认底部的小空隙 */
-}
+/* logo 头像的尺寸/圆形裁剪移进了 AvatarBurst 组件（那里用 size 属性控制），
+   这里只保留"链接怎么摆" */
 
 /* ---------- 右侧组：导航 + 分割线 + 登录区 ---------- */
 .header-right {
@@ -49,37 +55,32 @@
 /* 导航链接 */
 .nav {
   display: flex;
-  gap: 24px;
+  gap: 6px;            /* 胶囊自带内边距，间隔可以小一点 */
 }
 
+/* 导航项：每一颗都是一枚"透明胶囊"，悬停才显形 */
 .nav a {
   color: #444;
   text-decoration: none;
   font-size: 15px;
+  padding: 7px 14px;   /* 撑出胶囊的内边距 */
+  border-radius: 999px; /* 圆角拉到最大 = 胶囊形 */
+  /* 底色和字色平滑过渡，不要"啪"地跳变 */
+  transition: background-color 0.18s ease, color 0.18s ease;
 }
 
+/* 悬停：浮出一层浅薄荷底 */
 .nav a:hover {
-  color: #2563eb;
+  color: #0d9488;                       /* 薄荷青主题色 */
+  background: rgba(13, 148, 136, 0.09);
 }
 
 /* RouterLink 自动给"当前页面"的链接加 router-link-active 类，
    为它写样式 = 在哪个页面，哪个导航亮 */
 .nav a.router-link-active {
-  color: #2563eb;
+  color: #0d9488;
   font-weight: 600;
-  position: relative;  /* 给下面小横条当定位基准 */
-}
-
-/* ::after：在当前导航末尾画一个 2px 蓝色小横条 */
-.nav a.router-link-active::after {
-  content: '';         /* 伪元素必须有 content 才显示 */
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -6px;
-  height: 2px;
-  background: #2563eb;
-  border-radius: 2px;
+  background: rgba(13, 148, 136, 0.12); /* 当前页：薄荷胶囊底常驻 */
 }
 
 /* 竖分割线（导航和登录区之间） */
@@ -103,7 +104,7 @@
 }
 
 .auth a:hover {
-  color: #2563eb;
+  color: #0d9488;
 }
 
 /* 登录 | 注册 中间那个竖线字符 */
@@ -132,14 +133,14 @@
   display: block;
 }
 
-/* 没头像时的占位：昵称首字 + 淡蓝底 */
+/* 没头像时的占位：昵称首字 + 淡薄荷底 */
 .avatar-text {
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  color: #2563eb;
-  background: #e8f0fe;
+  color: #0d9488;
+  background: #e3f6f3;
 }
 
 /* ---------- 用户下拉菜单（LeetCode 风格面板） ---------- */
@@ -227,7 +228,7 @@
 
 .um-go {
   font-size: 12px;
-  color: #2563eb;
+  color: #0d9488;
 }
 
 /* 底部退出 */
@@ -267,6 +268,7 @@
   background: transparent;
   border-bottom-color: transparent;
   backdrop-filter: none;
+  box-shadow: none;      /* 毛玻璃的阴影也要一起去掉，不然"透明"得不干净 */
 }
 
 /* ---------- 爱心页专属：深空底上的浅色导航 ----------
@@ -280,15 +282,13 @@
 
 .header-dark .nav a:hover {
   color: #ff8fb5;
+  background: rgba(255, 255, 255, 0.12);   /* 深色底上悬停：浅色半透明胶囊 */
 }
 
-/* 当前页高亮的小横条也换成爱心粉 */
+/* 当前页：爱心粉字 + 淡淡的粉色胶囊底 */
 .header-dark .nav a.router-link-active {
   color: #ff8fb5;
-}
-
-.header-dark .nav a.router-link-active::after {
-  background: #ff8fb5;
+  background: rgba(255, 143, 181, 0.16);
 }
 
 /* 分割线换白色半透明 */

@@ -189,8 +189,8 @@ onMounted(loadAll)
 }
 
 .btn-back:hover {
-  border-color: #2563eb;
-  color: #2563eb;
+  border-color: #0d9488;
+  color: #0d9488;
 }
 </style>
 

@@ -1,187 +1,302 @@
 /* ============================================================
-   HomeView.css —— 主页（纯展示门面）
-   质感配方：16px圆角 + 发丝边 + 双层柔影 + hover上浮 + 胶囊按钮
+   HomeView —— 主页图片墙样式（极简画廊风）
+   背景 = 米白纸墙 + 极淡噪点纹理 + 顶部柔光；不打任何动态特效
+   尺寸策略：所有图片"宽度统一、高度随原图比例自动"
+   —— 不裁剪、不变形；代价是竖图会显示得长一些
    ============================================================ */
 
-.home-page {
-  max-width: 1080px;
-  margin: 24px auto;
-  padding: 0 16px;
+/* ---------- 整页容器：一面会"呼吸"的展墙 ---------- */
+.home {
+  position: relative;
+  /* 最小高度 = 一屏(100vh) 减去头部 60px —— 内容不够一屏时页面也撑满 */
+  min-height: calc(100vh - 60px);
+  background-color: #ffffff;   /* 和全站统一：纯白 */
+  /* 静态的那层：纸张颗粒（一段内联 SVG 用 feTurbulence 滤镜"凭空生成"噪点，
+     透明度 3% —— 近看才有一丝纸感，整体就是干净的白） */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
 }
 
-/* ---------- Hero 欢迎区 ---------- */
-.hero {
-  position: relative;      /* 飘浮樱花的定位基准 */
+/* ---------- 光层（::before 伪元素）----------
+   伪元素 = 不用往 HTML 里加任何标签，CSS 自己"造"出来的一层
+   三团光：顶部暖光 + 左上薄荷光 + 右下樱粉光
+   放在 fixed 层上 = 光跟着屏幕走不跟着页面滚，像"房间里的灯"，
+   而不是"画在墙上的图案" */
+.home::before {
+  content: '';              /* 伪元素必须有 content 才存在（哪怕是空的） */
+  position: fixed;          /* 固定在屏幕上 */
+  inset: 0;                 /* 上下左右全贴住 = 铺满视口 */
+  z-index: 0;               /* 垫在照片下面 */
+  pointer-events: none;     /* 不挡鼠标操作 */
+  background-image:
+    /* 顶部暖光：像阳光从上方斜照进来（"at 50% -12%" = 光心在视口顶端外面一点） */
+    radial-gradient(
+      1500px 760px at 50% -12%,
+      rgba(255, 243, 226, 0.9),
+      rgba(255, 243, 226, 0) 68%
+    ),
+    /* 左上：一抹极淡的薄荷光（和导航主题色同源） */
+    radial-gradient(
+      900px 620px at 6% 0%,
+      rgba(13, 148, 136, 0.09),
+      rgba(13, 148, 136, 0) 62%
+    ),
+    /* 右下偏上：一抹极淡的樱粉光（和留言页/爱心页的粉色同源） */
+    radial-gradient(
+      1000px 700px at 96% 28%,
+      rgba(244, 114, 182, 0.08),
+      rgba(244, 114, 182, 0) 62%
+    );
+  /* 40 秒一个来回：慢到你盯不出它在动，但页面"活"着，不是一张死图 */
+  animation: light-drift 40s ease-in-out infinite alternate;
+}
+
+/* 光的"漂移 + 呼吸"：
+   只动 transform 和 opacity —— 这两个属性由 GPU 合成，不掉帧。
+   如果去动 background-position 或宽高，会逼浏览器重新计算整页布局，很卡 */
+@keyframes light-drift {
+  from {
+    transform: translate3d(-1.4%, -1%, 0) scale(1);
+    opacity: 0.85;
+  }
+  to {
+    transform: translate3d(1.4%, 1.4%, 0) scale(1.06);
+    opacity: 1;
+  }
+}
+
+/* ---------- 暗角层（::after 伪元素）----------
+   四周极淡地压暗一点，中间保持纯白 —— 像美术馆里光只打在展品上，
+   视线自然被"聚"到中间的照片上。这是让"光"读得出来的另一半 */
+.home::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    130% 95% at 50% 30%,
+    rgba(0, 0, 0, 0) 55%,
+    rgba(0, 0, 0, 0.04) 100%
+  );
+}
+
+/* 有人系统里开了"减少动态效果"（防眩晕），就把漂移停掉，只留静态的光 */
+@media (prefers-reduced-motion: reduce) {
+  .home::before {
+    animation: none;
+  }
+}
+
+/* ---------- 个人信息卡：贴在屏幕右侧 ---------- */
+.profile {
+  position: fixed;          /* 固定在屏幕上：滚动照片时它一直待在原地 */
+  /* 定位思路：不是"离屏幕右边固定多少像素"，而是"离内容区右边固定多少像素"——
+     这样不管屏幕多宽，卡片和照片的距离都不变。
+     算式：卡片右边缘离屏幕右边 = 50% - 730px
+          （730 = 内容区半宽 540 + 缝 20 + 卡片宽 170，和之前放左边时同一个数） */
+  right: calc(50% - 730px);
+  top: 110px;               /* 从头部下方一点开始 */
+  width: 170px;
+  z-index: 2;               /* 比照片(1)高一层：邮箱气泡和遮罩才能盖住照片 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;      /* 内容水平居中 */
   text-align: center;
-  padding: 64px 0 48px;
+  padding: 20px 16px;
+  /* 半透明白 + 毛玻璃：和头部是同一套语言 */
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 18px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
 }
 
-.hero-title {
-  font-size: 34px;
-  color: #111;
-  margin-bottom: 12px;
+/* 屏幕不够宽时藏起来：
+   卡片(170) + 缝(20) + 内容区(1080) + 左右各留 20 的空隙 ≈ 需要 1500px 以上 */
+@media (max-width: 1499px) {
+  .profile {
+    display: none;
+  }
 }
 
-.hero-sub {
-  font-size: 15px;
-  color: #888;
-  margin-bottom: 28px;
+/* 头像的样式和"点击迸发小图案"的特效都搬进了 AvatarBurst 组件
+   （src/components/AvatarBurst.vue + views/css/AvatarBurst.css），
+   和信息卡无关，所以这里不再重复写 */
+
+.profile-name {
+  margin-top: 10px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #222;
 }
 
-.hero-actions {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
-
-.btn-hero {
-  padding: 10px 32px;
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  border-radius: 999px;    /* 胶囊主按钮 */
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
-}
-
-.btn-hero:hover {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-}
-
-.btn-hero.ghost {
-  background: #fff;
-  color: #2563eb;
-  border: 1px solid #c7d7f5;
-}
-
-.btn-hero.ghost:hover {
-  background: #f0f6ff;
-}
-
-/* 飘浮樱花：各自的位置/大小/动画节奏错开，才自然 */
-.petal {
-  position: absolute;
-  animation: petal-float 7s ease-in-out infinite;
-  pointer-events: none;    /* 纯装饰，不挡点击 */
-}
-
-.p1 { width: 26px; height: 26px; left: 12%; top: 30%; }
-.p2 { width: 16px; height: 16px; left: 22%; top: 62%; animation-delay: 1.6s; }
-.p3 { width: 20px; height: 20px; right: 14%; top: 26%; animation-delay: 3.1s; }
-.p4 { width: 14px; height: 14px; right: 24%; top: 64%; animation-delay: 4.5s; }
-
-@keyframes petal-float {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50%      { transform: translateY(-18px) rotate(24deg); }
-}
-
-/* ---------- 轮播图卡片 ---------- */
-.banner-card {
-  border-radius: 16px;
-  border: 1px solid rgba(15, 23, 42, 0.04);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
-  overflow: hidden;        /* 圆角裁掉轮播图直角 */
-  background: #fff;
-  margin-bottom: 24px;
-}
-
-/* 单张幻灯片：渐变底 + 图标 + 文案，整张可点 */
-.slide {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.slide-icon {
-  font-size: 52px;
-  margin-bottom: 14px;
-}
-
-.slide-title {
-  font-size: 24px;
-  color: #1f2937;
-  margin-bottom: 8px;
-}
-
-.slide-desc {
-  font-size: 14px;
-  color: #6b7280;
-  margin-bottom: 14px;
-}
-
-.slide-go {
-  font-size: 13px;
-  color: #2563eb;
-  background: rgba(255, 255, 255, 0.75);
-  padding: 6px 16px;
-  border-radius: 999px;
-}
-
-/* ---------- 入口卡片 ---------- */
-.entry-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.entry-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: #fff;
-  padding: 28px 16px;
-  border-radius: 16px;
-  border: 1px solid rgba(15, 23, 42, 0.04);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.entry-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.1);
-}
-
-.entry-icon {
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  background: #f5f7fb;
-  border-radius: 50%;
-  margin-bottom: 12px;
-}
-
-.entry-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #111;
-  margin-bottom: 4px;
-}
-
-.entry-desc {
+.profile-desc {
+  margin-top: 6px;
   font-size: 12px;
+  line-height: 1.7;
   color: #999;
 }
 
-/* ---------- 底部一行小字 ---------- */
-.home-foot {
-  text-align: center;
-  font-size: 12px;
-  color: #bbb;
-  padding: 32px 0 8px;
+/* 三个链接：竖着排 */
+.profile-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin-top: 16px;
 }
 
-/* 手机上入口卡两列排 */
-@media (max-width: 720px) {
-  .entry-grid {
-    grid-template-columns: repeat(2, 1fr);
+.profile-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  border-radius: 10px;      /* 和导航一样的"胶囊感" */
+  color: #555;
+  font-size: 13px;
+  text-decoration: none;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+/* 悬停：和导航用同一个薄荷青 */
+.profile-link:hover {
+  background: rgba(13, 148, 136, 0.1);
+  color: #0d9488;
+}
+
+/* 邮箱那行是个 <button>（不是链接），浏览器给按钮的默认样式要清掉，
+   再让它长得和上面两个 <a> 一模一样 */
+button.profile-link {
+  width: 100%;
+  border: none;
+  background: none;
+  font-family: inherit;   /* 按钮不自动继承字体，要手动继承 */
+  cursor: pointer;
+}
+
+/* 气泡的定位基准（气泡要挂在"邮箱"按钮正下方） */
+.mail-wrap {
+  position: relative;
+  width: 100%;
+}
+
+/* 全屏透明遮罩：接住"点别处关闭"这个动作 */
+.mail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+
+/* 气泡本体：一块白色小卡片 */
+.mail-pop {
+  position: absolute;
+  top: calc(100% + 8px);    /* 挂在按钮下方 8px 处 */
+  left: -14px;              /* 比卡片内容区稍微"伸出去"一点，显得更透气 */
+  right: -14px;
+  z-index: 95;              /* 在遮罩(90)上面，不然点不到"复制"按钮 */
+  display: flex;
+  flex-direction: column;   /* 地址一行、按钮一行，竖着排 */
+  gap: 8px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  animation: mail-pop-in 0.16s ease;   /* 弹出的小动画 */
+}
+
+@keyframes mail-pop-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.mail-addr {
+  font-size: 12px;
+  color: #333;
+  text-align: center;
+  user-select: all;   /* 点一下选中整段：方便手动复制（Ctrl+C） */
+  word-break: break-all;
+}
+
+.mail-copy {
+  border: none;
+  background: rgba(13, 148, 136, 0.1);
+  color: #0d9488;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 6px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+.mail-copy:hover {
+  background: rgba(13, 148, 136, 0.2);
+}
+
+/* ---------- 内容区 ---------- */
+.gallery {
+  position: relative;
+  z-index: 1;                      /* 压在"光层"和"暗角层"上面，照片永远是主角 */
+  max-width: 1080px;               /* 和头部同宽 1080 —— 边缘对齐才整齐 */
+  margin: 0 auto;                  /* 左右 auto = 水平居中 */
+  /* 左右 padding 和头部的 16px 保持一致 → 图片左边缘和 logo 左边缘严格对齐 */
+  padding: 36px 16px 80px;         /* 上 / 左右 / 下 的留白 */
+}
+
+/* 各种提示文字（加载中 / 失败 / 文件夹为空） */
+.gallery-tip {
+  text-align: center;       /* 居中 */
+  color: #9ca3af;           /* 灰色，安静不抢眼 */
+  font-size: 15px;
+  padding: 100px 0;         /* 上下撑开，别挤在顶部 */
+}
+
+/* 图片列表：竖向一列 */
+.gallery-list {
+  display: flex;
+  flex-direction: column;   /* 竖向排列 → 一张图独占一行 */
+  gap: 32px;                /* 图与图之间的间距 */
+}
+
+/* 每张图的"相框" */
+.shot {
+  margin: 0;                              /* <figure> 自带外边距，清掉 */
+  animation: shot-in 0.5s ease both;      /* 入场动画：淡入 + 微微上浮 */
+}
+
+/* 图片本体 */
+.shot img {
+  display: block;                         /* 图片默认是行内元素，底部会留几像素缝，改成块级 */
+  /* 尺寸策略升级成"框内等比缩放"：
+     宽和高各给一个"上限"，浏览器自己挑能塞进这个框的最大尺寸 —— 绝不拉伸、绝不裁剪 */
+  max-width: 100%;                        /* 宽度上限：撑满相框（和以前一样宽） */
+  max-height: 86vh;                       /* 高度上限：一屏的 86%，再高的照片也不会超过一屏 */
+  width: auto;                            /* 宽高都写 auto = 让浏览器按原图比例缩放（不变形） */
+  height: auto;
+  margin: 0 auto;                         /* 被高度限制而"缩窄"的照片，水平居中 */
+  border-radius: 16px;                    /* 圆角 */
+  /* 阴影加重了一点点：在浅色展墙上，"照片挂在墙上"的立体感主要靠它 */
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.12);
+  transition: transform 0.28s ease, box-shadow 0.28s ease;  /* 给悬停的放大/阴影变化铺路 */
+}
+
+/* 鼠标悬停：微微放大 + 阴影加深，有"拿起来"的感觉 */
+.shot img:hover {
+  transform: scale(1.012);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.2);
+}
+
+/* 入场动画的关键帧：从"透明 + 位置靠下"飘到"实体 + 原位" */
+@keyframes shot-in {
+  from {
+    opacity: 0;                    /* 起始：完全透明 */
+    transform: translateY(18px);   /* 起始：位置比最终位置低 18px */
+  }
+  to {
+    opacity: 1;                    /* 结束：完全显示 */
+    transform: translateY(0);      /* 结束：回到本来位置 */
   }
 }

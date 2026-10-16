@@ -1,0 +1,55 @@
+/* ============================================================
+   AvatarBurst.css —— 可复用组件"点了会迸发的头像"的样式
+   结构：.ab-wrap(定位基准+接点击) → .ab-img(头像) + 一堆 .ab-burst(小图案)
+   ============================================================ */
+
+.ab-wrap {
+  position: relative;      /* 小图案们的定位基准：它们都从这里飞出去 */
+  display: inline-block;   /* 大小 = 图片本身大小，不多占地方 */
+  line-height: 0;          /* 消掉图片底部那条几像素的空隙 */
+  cursor: pointer;         /* 鼠标变小手：暗示"这玩意儿能点" */
+  transition: transform 0.15s ease;
+}
+
+/* 按下去的瞬间轻轻缩一下 —— "按到实物"的手感 */
+.ab-wrap:active {
+  transform: scale(0.94);
+}
+
+/* 头像本体：直径由 --ab-size 决定（外面通过 size 属性传进来） */
+.ab-img {
+  width: var(--ab-size);
+  height: var(--ab-size);
+  border-radius: 50%;      /* 裁成圆形 */
+  object-fit: cover;       /* 按比例裁剪填满，不变形 */
+  display: block;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+
+/* 一个个飞出去的小图案 */
+.ab-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  pointer-events: none;    /* 不吃鼠标事件：别挡着"再点一次" */
+  user-select: none;       /* 不能被选中（不然拖拽会选中一串 emoji） */
+  /* forwards：动画播完停在最后一帧（透明的那帧），等 JS 把它从 DOM 删掉 */
+  animation-name: burst-out;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1);
+  animation-fill-mode: forwards;
+}
+
+@keyframes burst-out {
+  0% {
+    /* translate(-50%,-50%) = 让小图案的"中心"对准头像中心
+       （元素默认是左上角对齐，不补这一下就会偏出去） */
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 1;
+  }
+  100% {
+    /* --dx / --dy / --rot 是每个小图案自己的飞行距离和旋转角度，由 JS 随机生成 */
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.05)
+      rotate(var(--rot));
+    opacity: 0;
+  }
+}

@@ -1,6 +1,7 @@
 package router
 
 import (
+	"blog/internal/config"
 	"blog/internal/handler"
 	"blog/internal/middleware"
 
@@ -18,6 +19,10 @@ func Setup(r *gin.Engine) {
 	// 静态文件服务：浏览器访问 http://localhost:8080/uploads/xxx.png
 	// Gin 就把 ./uploads/ 目录里对应的文件直接递出去
 	r.Static("/uploads", "./uploads")
+
+	// 主页图片墙的图片：直接把 .env 里配置的 PICTURES_DIR 文件夹对外提供
+	// 访问 http://localhost:8080/pictures/1.jpg 就能拿到文件（清单在 /api/pictures）
+	r.Static("/pictures", config.Cfg.PicturesDir)
 
 	// 根路径：一个最简单的"我还活着"信号，浏览器直接打开 8080 就能看到
 	r.GET("/", func(c *gin.Context) {
@@ -41,6 +46,7 @@ func Setup(r *gin.Engine) {
 		pub.GET("/talks/:id/comments", handler.ListTalkComments) // 说说评论列表（公开）
 		pub.GET("/album", handler.ListAlbum)                     // 相册列表（公开）
 		pub.GET("/guestbook", handler.ListMessages)              // 留言板（公开）
+		pub.GET("/pictures", handler.ListPictures)               // 主页图片墙的图片清单（公开）
 	}
 
 	// ---------- 需要登录的接口组 ----------

@@ -5,16 +5,38 @@
 //       组件挂载时问一次；登录/登出时由对应页面调 fetchMe() 同步
 // ============================================================
 
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { me, fetchMe } from '@/stores/me'   // 共享状态：登录人信息
 import defaultAvatar from '@/assets/images/avatar-default.svg' // 默认灰头像（没传头像的人用）
+import AvatarBurst from '@/components/AvatarBurst.vue' // 点了会迸发小图案的头像（可复用组件）
+import logoImg from '@/assets/images/clmqq.jpg'        // 左上角 logo 用的头像图片
 
 const router = useRouter()
 const route = useRoute()   // 读当前路由：留言页要让 header 换装成透明模式
 
-// 进页面问一次"我是谁"（me 是共享 ref，值一变 header 自动更新）
-onMounted(fetchMe)
+// 留言页 / 爱心页：头部要换成"透明浮层"模式（这两个页面下面是全屏背景，不需要头部分层）
+const isGhost = computed(() => route.path === '/guestbook' || route.path === '/heart')
+
+// ---------- 滚动感知：页面在顶部时头部"隐形"，滚下去才浮出阴影 ----------
+// 目的：顶部时头部和纯白页面融为一体（没有那条"横带"感），
+//      滚动后内容从底下穿过，再浮出阴影把头部"托"起来
+const scrolled = ref(false)   // 页面是否已经滚动离开顶部
+
+function onScroll() {
+  scrolled.value = window.scrollY > 8   // 滚过 8px 就算"离开顶部"（留一点容错）
+}
+
+onMounted(() => {
+  fetchMe()   // 问一次"我是谁"（me 是共享 ref，值一变 header 自动更新）
+  // passive: true = 告诉浏览器"这监听器不会阻止滚动"，滚动性能更好
+  window.addEventListener('scroll', onScroll, { passive: true })
+  onScroll()  // 万一是刷新在页面中间打开的，先手动算一次
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', onScroll)  // 销毁时摘掉监听，防止内存泄漏
+})
 
 // ---------- 用户菜单（LeetCode 式下拉面板） ----------
 const menuOpen = ref(false)
@@ -43,24 +65,27 @@ function logout() {
   <header
     class="site-header"
     :class="{
-      'header-ghost': route.path === '/guestbook' || route.path === '/heart',
+      'header-ghost': isGhost,
       'header-dark': route.path === '/heart',
+      'is-scrolled': scrolled && !isGhost,
     }"
   >
     <div class="header-inner">
-      <!-- 最左：头像当logo，点击回首页（图片放 assets/images/，打包时 Vite 自动处理） -->
+      <!-- 最左：头像当 logo，点击回首页；顺手带个"迸发小图案"的特效
+           （已经在首页时点击不跳转，正好把特效看全；
+             在别的页面点击会边放特效边跳回首页，跳转不受影响） -->
       <RouterLink class="logo" to="/">
-        <img class="logo-avatar" src="@/assets/images/clmqq.jpg" alt="本站作者头像"/>
+        <AvatarBurst :src="logoImg" :size="40" alt="本站作者头像" />
       </RouterLink>
 
       <!-- 右侧：导航 + 登录区 挨在一起 -->
       <div class="header-right">
-        <!-- 导航：主页(展示门面)/说说/相册/留言/爱心（💖 = 粒子爱心特效页） -->
+        <!-- 导航：每项前面带一个小图标（emoji），和"💖 爱心"保持同一套视觉语言 -->
         <nav class="nav">
-          <RouterLink to="/">主页</RouterLink>
-          <RouterLink to="/talks">说说</RouterLink>
-          <RouterLink to="/album">相册</RouterLink>
-          <RouterLink to="/guestbook">留言</RouterLink>
+          <RouterLink to="/">🏠 主页</RouterLink>
+          <RouterLink to="/talks">💬 说说</RouterLink>
+          <RouterLink to="/album">📷 相册</RouterLink>
+          <RouterLink to="/guestbook">🌸 留言</RouterLink>
           <RouterLink to="/heart">💖 爱心</RouterLink>
         </nav>
 

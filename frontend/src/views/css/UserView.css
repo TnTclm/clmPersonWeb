@@ -34,14 +34,14 @@
   border: 1px solid #eee;
 }
 
-/* 没头像时的占位：昵称首字 + 淡蓝底 */
+/* 没头像时的占位：昵称首字 + 淡薄荷底 */
 .avatar-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 40px;
-  color: #2563eb;
-  background: #e8f0fe;
+  color: #0d9488;
+  background: #e3f6f3;
 }
 
 .profile-name {
@@ -93,7 +93,7 @@
 }
 
 .edit-input:focus {
-  border-color: #2563eb; /* 聚焦蓝边，全站一个语言 */
+  border-color: #0d9488; /* 聚焦时的边框用薄荷青，和导航一个语言 */
 }
 
 .edit-actions {
@@ -102,23 +102,13 @@
   margin-top: 12px;
 }
 
-.btn-save {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
-}
-
-.btn-save:hover {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
-  color: #fff;
-}
-
 /* 隐藏文件选择框（真正干活的），只留按钮当门面 */
 .hidden-input {
   display: none;
 }
 
+/* ---------- 按钮 ----------
+   基础样式（白底灰边）：取消、上传头像这些都用它 */
 .btn-upload {
   padding: 6px 16px;
   border: 1px solid #ddd;
@@ -129,12 +119,38 @@
 }
 
 .btn-upload:hover {
-  border-color: #2563eb;
-  color: #2563eb;
+  border-color: #0d9488;
+  color: #0d9488;
 }
 
 .btn-upload:disabled {
   color: #999;
+  cursor: not-allowed;
+}
+
+/* 强调样式（薄荷青实心）：保存按钮
+   ⚠️ 这段必须写在 .btn-upload 后面！
+   按钮上同时挂着 class="btn-upload btn-save" 两个类，
+   两条规则的"权重"一模一样 —— 这时候 CSS 的规矩是"后写的赢"。
+   以前这段写在前面，背景色被 .btn-upload 的白底覆盖掉，
+   而白字还在 → 白底白字，"保存"两个字直接隐身了 */
+.btn-save {
+  background: #0d9488;
+  border-color: #0d9488;
+  color: #fff;
+}
+
+.btn-save:hover {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #fff;
+}
+
+/* 保存中（按钮被禁用）：淡淡的薄荷底 */
+.btn-save:disabled {
+  background: #a7d8d3;
+  border-color: #a7d8d3;
+  color: #fff;
   cursor: not-allowed;
 }
 

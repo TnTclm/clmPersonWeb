@@ -1,21 +1,31 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"blog/internal/config"
 	"blog/internal/database"
 	"blog/internal/handler"
 	"blog/internal/logger"
 	"blog/internal/router"
-	"os"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	// 第一件事：装日志。后面每一步的动静都要靠它记录
-	logger.Init()
-	// /internal/config 加载全局变量 Cfg
+	// ① 先读配置：端口、数据库、日志级别这些都写在 .env 里
 	config.Load()
+	// ② 再装日志 —— 顺序不能反！
+	//    日志级别要从 .env 里读，所以必须先有配置、才有日志。
+	//    ParseLevel 负责把 "debug" 这种字符串翻译成 slog 认识的级别。
+	logger.Init(logger.ParseLevel(config.Cfg.LogLevel))
 	// /internal/database  连接mysql
 	database.ConnectDB()
 	// /internal/database   连接redis
@@ -29,12 +39,64 @@ func main() {
 	for _, dir := range []string{"uploads", "uploads/avatar", "uploads/talk", "uploads/album"} {
 		_ = os.MkdirAll(dir, 0755)
 	}
+
+	// 运行模式：gin 只认 debug / release / test 三种，写错了它会直接 panic，
+	// 所以这里自己先过一道筛子（认不出来就保持默认的 debug）
+	if config.Cfg.GinMode == gin.ReleaseMode || config.Cfg.GinMode == gin.TestMode {
+		gin.SetMode(config.Cfg.GinMode)
+	}
+
 	// gin.Default() 自带两个中间件：Logger（控制台访问日志）+ Recovery（panic 兜底）
 	r := gin.Default()
 	// 上传缓冲调大：默认32MB，传大视频时减少写临时文件的次数
 	r.MaxMultipartMemory = 128 << 20 // 128MB
+	// 关掉"信任所有代理"的默认行为：本机直连用不着它，
+	// 不然每次启动都要打一句安全警告（以后挂到 Nginx 后面再按需配置）
+	_ = r.SetTrustedProxies(nil)
+
 	// 所有路由统统交给 /internal/router 统一登记（main.go 从此只管"启动流程"）
 	router.Setup(r)
-	// 最后一步：监听端口跑起来，这行会一直阻塞在这里（直到 Ctrl+C）
-	r.Run(":" + config.Cfg.Port)
+
+	// ---------- 优雅关闭 ----------
+	// 原来的 r.Run() 一按 Ctrl+C 就"咔"地掐断所有连接，
+	// 正在处理的请求会拿到半截响应、写到一半的数据也可能丢。
+	// 优雅关闭 = 退出前先把"还在手上的活儿"干完。
+	// 做法：换成标准库的 http.Server（优雅关闭的方法长在它身上）
+	srv := &http.Server{
+		Addr:    ":" + config.Cfg.Port, // 监听哪个端口
+		Handler: r,                     // 来了请求交给 gin 处理
+	}
+
+	// 服务得"在后台跑"：另开一个 goroutine 去监听。
+	// 不这么做的话，主线程会一直卡在 ListenAndServe 上，
+	// 下面"等退出信号"的代码永远轮不到执行
+	go func() {
+		slog.Info("服务已启动", "port", config.Cfg.Port)
+		// 正常关闭时 ListenAndServe 会返回 ErrServerClosed —— 那是预期结果，不算错误
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Fatal("服务启动失败", "err", err)
+		}
+	}()
+
+	// 主线程在这里"趴着等信号"：Ctrl+C（SIGINT）或系统要求退出（SIGTERM）
+	quit := make(chan os.Signal, 1)                      // 造一个"收件箱"，专门接信号
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM) // 订阅这两种信号
+	<-quit                                               // 阻塞在这儿，收到信号才往下走
+	slog.Info("收到退出信号，开始优雅关闭…")
+
+	// 给"正在处理中的请求"最多 5 秒做完；5 秒还没完就放弃。
+	// （不设时限的话，万一有个请求卡死，你就永远退不出去了）
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel() // 函数结束时释放定时器（好习惯，防泄漏）
+	if err := srv.Shutdown(ctx); err != nil {
+		slog.Error("优雅关闭超时，强制退出", "err", err)
+	}
+
+	// 收尾：把数据库 / Redis 连接也关掉，干干净净地走
+	if sqlDB, err := database.DB.DB(); err == nil {
+		_ = sqlDB.Close()
+	}
+	_ = database.RDB.Close()
+
+	slog.Info("已安全退出，拜拜 👋")
 }

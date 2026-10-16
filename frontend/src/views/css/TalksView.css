@@ -51,7 +51,7 @@
 
 .composer-input:focus {
   outline: none;
-  border-color: #2563eb; /* 聚焦时蓝边提示"在打字了" */
+  border-color: #0d9488; /* 聚焦时薄荷青边，提示"在打字了" */
 }
 
 .composer-tools {
@@ -70,8 +70,8 @@
 }
 
 .btn-add:hover {
-  border-color: #2563eb;
-  color: #2563eb;
+  border-color: #0d9488;
+  color: #0d9488;
 }
 
 .btn-add:disabled {
@@ -93,7 +93,7 @@
 
 .btn-publish {
   padding: 8px 28px;
-  background: #2563eb;
+  background: #0d9488;
   color: #fff;
   border: none;
   border-radius: 999px; /* 胶囊主按钮 */
@@ -103,16 +103,16 @@
 }
 
 .btn-publish:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: #0f766e;
   transform: translateY(-1px);
 }
 
 .btn-publish:hover {
-  background: #1d4ed8;
+  background: #0f766e;
 }
 
 .btn-publish:disabled {
-  background: #9dc0f5;
+  background: #a7d8d3;
   cursor: not-allowed;
 }
 
@@ -174,8 +174,8 @@
 }
 
 .pic-add:hover {
-  color: #2563eb;
-  border-color: #2563eb;
+  color: #0d9488;
+  border-color: #0d9488;
 }
 
 /* 预览图右上角的移除小叉 */
@@ -236,7 +236,7 @@
 .talk-name {
   font-size: 14px;
   font-weight: 600;
-  color: #2563eb;
+  color: #0d9488;
   cursor: pointer; /* 点昵称去看 TA 的空间 */
 }
 
@@ -331,7 +331,7 @@
 
 .tk-cname {
   font-size: 12px;
-  color: #2563eb;
+  color: #0d9488;
   cursor: pointer; /* 点昵称去看 TA 的空间 */
 }
 
@@ -370,7 +370,7 @@
 }
 
 .tk-login {
-  color: #2563eb;
+  color: #0d9488;
   text-decoration: none;
 }
 
@@ -391,12 +391,12 @@
 }
 
 .tk-input:focus {
-  border-color: #2563eb; /* 聚焦蓝边，和发布框一个语言 */
+  border-color: #0d9488; /* 聚焦边：薄荷青，和发布框一个语言 */
 }
 
 .tk-send {
   border: none;
-  background: #2563eb;
+  background: #0d9488;
   color: #fff;
   border-radius: 999px; /* 胶囊发送键 */
   padding: 8px 18px;
@@ -406,7 +406,7 @@
 }
 
 .tk-send:hover {
-  background: #1d4ed8;
+  background: #0f766e;
 }
 
 .empty-tip {

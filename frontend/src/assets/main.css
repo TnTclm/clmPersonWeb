@@ -17,6 +17,8 @@
 body {
   /* 优先用微软雅黑，用户没装就退到系统默认无衬线字体 */
   font-family: "Microsoft YaHei", sans-serif;
-  background: #f5f6f7; /* 浅灰底，衬托白色卡片 */
+  /* 全站统一底色：纯白
+     和毛玻璃头部完全同色 → 页面顶部"无缝"；卡片靠发丝边+阴影浮起来 */
+  background: #ffffff;
   color: #333;         /* 正文深灰，比纯黑柔和 */
 }
