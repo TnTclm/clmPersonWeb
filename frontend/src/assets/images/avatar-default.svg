@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <!-- 默认头像：灰色圆角底 + 浅色人形剪影（没上传头像的人就用它） -->
+  <rect width="96" height="96" rx="12" fill="#dcdfe6"/>
+  <circle cx="48" cy="38" r="16" fill="#f2f4f8"/>
+  <path d="M16 96 C16 66 30 58 48 58 C66 58 80 66 80 96 Z" fill="#f2f4f8"/>
+</svg>

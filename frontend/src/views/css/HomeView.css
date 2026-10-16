@@ -1,0 +1,187 @@
+/* ============================================================
+   HomeView.css —— 主页（纯展示门面）
+   质感配方：16px圆角 + 发丝边 + 双层柔影 + hover上浮 + 胶囊按钮
+   ============================================================ */
+
+.home-page {
+  max-width: 1080px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+
+/* ---------- Hero 欢迎区 ---------- */
+.hero {
+  position: relative;      /* 飘浮樱花的定位基准 */
+  text-align: center;
+  padding: 64px 0 48px;
+}
+
+.hero-title {
+  font-size: 34px;
+  color: #111;
+  margin-bottom: 12px;
+}
+
+.hero-sub {
+  font-size: 15px;
+  color: #888;
+  margin-bottom: 28px;
+}
+
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.btn-hero {
+  padding: 10px 32px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 999px;    /* 胶囊主按钮 */
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.btn-hero:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.btn-hero.ghost {
+  background: #fff;
+  color: #2563eb;
+  border: 1px solid #c7d7f5;
+}
+
+.btn-hero.ghost:hover {
+  background: #f0f6ff;
+}
+
+/* 飘浮樱花：各自的位置/大小/动画节奏错开，才自然 */
+.petal {
+  position: absolute;
+  animation: petal-float 7s ease-in-out infinite;
+  pointer-events: none;    /* 纯装饰，不挡点击 */
+}
+
+.p1 { width: 26px; height: 26px; left: 12%; top: 30%; }
+.p2 { width: 16px; height: 16px; left: 22%; top: 62%; animation-delay: 1.6s; }
+.p3 { width: 20px; height: 20px; right: 14%; top: 26%; animation-delay: 3.1s; }
+.p4 { width: 14px; height: 14px; right: 24%; top: 64%; animation-delay: 4.5s; }
+
+@keyframes petal-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-18px) rotate(24deg); }
+}
+
+/* ---------- 轮播图卡片 ---------- */
+.banner-card {
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.04);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+  overflow: hidden;        /* 圆角裁掉轮播图直角 */
+  background: #fff;
+  margin-bottom: 24px;
+}
+
+/* 单张幻灯片：渐变底 + 图标 + 文案，整张可点 */
+.slide {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.slide-icon {
+  font-size: 52px;
+  margin-bottom: 14px;
+}
+
+.slide-title {
+  font-size: 24px;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.slide-desc {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 14px;
+}
+
+.slide-go {
+  font-size: 13px;
+  color: #2563eb;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 6px 16px;
+  border-radius: 999px;
+}
+
+/* ---------- 入口卡片 ---------- */
+.entry-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.entry-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  padding: 28px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.04);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.entry-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.1);
+}
+
+.entry-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  background: #f5f7fb;
+  border-radius: 50%;
+  margin-bottom: 12px;
+}
+
+.entry-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 4px;
+}
+
+.entry-desc {
+  font-size: 12px;
+  color: #999;
+}
+
+/* ---------- 底部一行小字 ---------- */
+.home-foot {
+  text-align: center;
+  font-size: 12px;
+  color: #bbb;
+  padding: 32px 0 8px;
+}
+
+/* 手机上入口卡两列排 */
+@media (max-width: 720px) {
+  .entry-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

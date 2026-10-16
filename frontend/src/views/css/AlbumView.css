@@ -1,0 +1,307 @@
+/* ============================================================
+   AlbumView.css —— 相册（博客式纵向卡片流）
+   一条内容 = 一个通栏卡片：说明 + 图片九宫格 + 视频 + 底部操作
+   ============================================================ */
+
+.album-page {
+  max-width: 1080px;     /* 和博客文章页/首页同宽，不再显得小气 */
+  margin: 24px auto;
+  padding: 0 16px;
+}
+
+.hidden-input {
+  display: none;
+}
+
+/* ---------- 页头 ---------- */
+.album-head {
+  margin-bottom: 16px;
+}
+
+.album-title {
+  font-size: 26px;
+  color: #111;
+  margin: 0 0 6px;
+}
+
+.album-sub {
+  font-size: 13px;
+  color: #999;
+  margin: 0;
+}
+
+/* ---------- 发布框（博主） ---------- */
+.album-composer {
+  background: #fff;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  margin-bottom: 20px;
+}
+
+.composer-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 14px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.composer-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;       /* 窄屏时按钮和说明换行 */
+}
+
+.btn-pick {
+  padding: 6px 12px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+}
+
+.btn-pick:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+.pick-note {
+  flex: 1;               /* 占中间剩余空间，把发布按钮推到最右 */
+  font-size: 12px;
+  color: #999;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-publish {
+  padding: 7px 22px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-publish:hover {
+  background: #1d4ed8;
+}
+
+.btn-publish:disabled {
+  background: #9dc0f5;
+  cursor: not-allowed;
+}
+
+/* ---------- 内容卡片：一条一个通栏 ---------- */
+.album-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  margin-bottom: 16px;
+}
+
+/* 卡片头：计数徽章 + 时间，标明"这些文件是同一次发的" */
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.card-count {
+  font-size: 12px;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 3px 10px;
+  border-radius: 999px;    /* 胶囊形 */
+}
+
+.card-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.card-title {
+  font-size: 15px;
+  color: #222;
+  line-height: 1.7;
+  white-space: pre-wrap;   /* 说明里敲的回车原样显示 */
+  word-break: break-word;
+  margin: 0 0 12px;
+}
+
+/* 图片：按数量决定布局，铺满卡片内容区（约 1008px） */
+.card-img-grid {
+  display: grid;
+  gap: 8px;
+}
+
+/* 单图：限个宽度当大图看，不无限拉伸 */
+.card-img-grid.single {
+  grid-template-columns: 1fr;
+  max-width: 640px;
+}
+
+/* 2 张 / 4 张：两列，4 张正好 2×2 铺满 */
+.card-img-grid.two {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* 3 张 / 5~9 张：三列，每格约 330px */
+.card-img-grid.three {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.card-img {
+  width: 100%;
+  aspect-ratio: 1 / 1;     /* 正方形格子 */
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: zoom-in;
+  display: block;
+}
+
+/* 视频：一组横向 flex，缩略小样能并排就并排，视觉上抱成团 */
+.card-vid-row {
+  display: flex;
+  flex-wrap: wrap;         /* 一行放不下就换行 */
+  gap: 10px;
+  align-items: flex-start; /* 各缩略样保持自身高度，不被拉成一样高 */
+  margin-top: 12px;
+}
+
+/* 缩略格：视频按自身比例缩成小样，整格可点 */
+.vid-thumb {
+  position: relative;      /* 给居中的播放按钮当定位基准 */
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+  line-height: 0;          /* 消掉 video 底部的基线缝隙 */
+}
+
+.vid-cover {
+  display: block;
+  max-height: 240px;       /* 卡片里只放小样，想看大的点开弹层 */
+  max-width: 100%;
+  width: auto;             /* 宽度跟随视频自身比例（竖屏窄、横屏宽） */
+}
+
+.vid-thumb:hover .vid-cover {
+  opacity: 0.85;           /* hover 微微变暗，暗示"能点" */
+}
+
+/* 居中播放按钮：纯装饰，pointer-events 让点击穿透到格子 */
+.vid-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 15px;
+  pointer-events: none;
+}
+
+/* ---------- 视频大播放器弹层 ---------- */
+.vid-mask {
+  position: fixed;
+  inset: 0;                /* 铺满全屏的黑色遮罩 */
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 2000;           /* 盖过顶部导航 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vid-player {
+  max-width: 92vw;         /* 原尺寸播放：上限就是接近全屏 */
+  max-height: 88vh;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  background: #000;
+}
+
+.vid-close {
+  position: absolute;
+  top: 20px;
+  right: 28px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 22px;
+  line-height: 40px;
+  cursor: pointer;
+}
+
+.vid-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.card-img-grid + .card-vid-row {
+  margin-top: 12px;        /* 图和视频混发时留出间距 */
+}
+
+/* ---------- 底部：博主操作（时间已挪到卡片头） ---------- */
+.card-foot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.card-edit,
+.card-del {
+  border: none;
+  background: none;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.card-edit {
+  color: #2563eb;
+}
+
+.card-edit:hover {
+  text-decoration: underline;
+}
+
+.card-del {
+  color: #bbb;
+}
+
+.card-del:hover {
+  color: #e74c3c;
+}
+
+/* ---------- 加载中 / 空状态 ---------- */
+.state-tip {
+  text-align: center;
+  color: #999;
+  padding: 80px 0;
+}

@@ -1,0 +1,62 @@
+/* ============================================================
+   HeartView.css —— 💖 爱心页（纯粒子特效，沉浸式一整屏）
+   ============================================================ */
+
+.heart-page {
+  /* 页面本身不滚动，就是一整屏特效 */
+}
+
+/* 舞台：真全屏。header 在爱心页是 absolute 透明浮层（不占文档流），
+   双 canvas 叠放：底层静态深空 + 顶层粒子（透明底）
+   开场 1.1s 整体淡入，避免进页面突兀一闪 */
+.heart-stage {
+  position: relative;
+  height: 100vh;
+  background: #04020c;
+  overflow: hidden;
+  animation: stage-in 1.1s ease both;
+}
+
+@keyframes stage-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.bg-canvas,
+.heart-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.heart-tip {
+  position: absolute;
+  bottom: 18px;
+  left: 0;
+  right: 0;
+  z-index: 2;             /* 压在两块画布上 */
+  text-align: center;
+  font-size: 13px;
+  color: rgba(140, 200, 235, 0.5);
+  margin: 0;
+  pointer-events: none;   /* 不挡鼠标，穿透到 canvas */
+  animation: tip-breathe 2.4s ease-in-out infinite;
+}
+
+/* 提示字轻轻呼吸，和心跳呼应 */
+@keyframes tip-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}

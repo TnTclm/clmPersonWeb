@@ -1,0 +1,23 @@
+# EditorConfig：统一整个项目的代码风格，IDE（GoLand/VSCode等）会自动读取
+# 官网：https://editorconfig.org
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# 前端全家桶：统一 2 空格缩进（社区惯例）
+[*.{html,css,js,vue,json,yml,yaml,scss}]
+indent_style = space
+indent_size = 2
+
+# Go 语言：用 tab 缩进（gofmt 的国家标准，别改成空格）
+[*.go]
+indent_style = tab
+
+# Makefile 必须用 tab（语法要求，不是风格）
+[Makefile]
+indent_style = tab

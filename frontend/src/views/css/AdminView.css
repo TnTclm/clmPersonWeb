@@ -1,0 +1,143 @@
+/* ============================================================
+   AdminView.css —— 后台管理页样式
+   ============================================================ */
+
+.admin-page {
+  max-width: 760px;      /* 管理页窄一点，表单好读 */
+  margin: 24px auto;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 白卡片容器 */
+.admin-card {
+  background: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.admin-card h2 {
+  font-size: 17px;
+  color: #111;
+  margin-bottom: 16px;
+}
+
+/* 标题输入框 */
+.admin-input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* 正文多行输入框：resize:vertical 只允许上下拉伸 */
+.admin-textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.7;
+  resize: vertical;
+  font-family: inherit;  /* textarea 默认字体和页面不同，统一掉 */
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+}
+
+/* 主按钮：蓝色 */
+.btn-primary {
+  padding: 8px 20px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+}
+
+/* 次要按钮：白底描边 */
+.btn-plain {
+  padding: 8px 14px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #555;
+}
+
+.btn-plain:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+/* 危险按钮：红字提示危险操作 */
+.btn-danger {
+  padding: 8px 14px;
+  background: #fff;
+  border: 1px solid #fca5a5;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #dc2626;
+}
+
+.btn-danger:hover {
+  background: #fef2f2;
+}
+
+/* ---------- 管理列表 ---------- */
+.admin-tip {
+  font-size: 13px;
+  color: #999;
+  margin: 8px 0 0;
+}
+
+.empty-tip {
+  color: #999;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.manage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #f5f5f5; /* 每行底下一条淡线 */
+}
+
+.row-info {
+  display: flex;
+  flex-direction: column; /* 标题在上、信息在下 */
+  gap: 4px;
+}
+
+.row-title {
+  font-size: 14px;
+  color: #333;
+}
+
+.row-meta {
+  font-size: 12px;
+  color: #999;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+}

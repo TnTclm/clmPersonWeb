@@ -1,0 +1,108 @@
+/* ============================================================
+   登录/注册共用样式（两个页面长得像才像一家人，改一处两边一起变）
+   质感配方：16px圆角卡片 + 发丝边 + 双层柔影 + 12px输入框聚焦蓝边 + 胶囊按钮
+   ============================================================ */
+
+/* ---------- 卡片容器 ---------- */
+/*整体*/
+.auth-card {
+  width: 360px;
+  margin: 80px auto;      /* 上下80，左右auto = 水平居中 */
+  background: #fff;
+  padding: 32px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.04); /* 发丝边：白卡有轮廓不糊底 */
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.auth-card h1 {
+  font-size: 22px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+/* ---------- 输入框 ---------- */
+.auth-card input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.auth-card input:focus {
+  border-color: #2563eb; /* 聚焦蓝边，全站一个语言 */
+}
+
+/* Edge 自带的密码小眼睛关掉（它忽隐忽现不听话），统一用我们自己造的 */
+.auth-card input::-ms-reveal,
+.auth-card input::-ms-clear {
+  display: none;
+}
+
+/* ---------- 密码框 + 小眼睛 ---------- */
+/* 眼睛本体是组件 EyeToggle.vue（自带样式），这里只管给输入框腾位置 */
+.pwd-wrap {
+  position: relative;   /* 眼睛的定位基准 */
+  margin-bottom: 12px;  /* 字段间距挪到外层：不然眼睛会对着"输入框+下边距"居中，显得偏高 */
+}
+
+.pwd-wrap input {
+  padding-right: 40px; /* 右边给眼睛留个座 */
+  margin-bottom: 0;    /* 间距让给外层管，眼睛才正对输入框中心 */
+}
+
+/* ---------- 登录/注册按钮：胶囊 ---------- */
+.auth-card button {
+  width: 100%;
+  padding: 10px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.auth-card button:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+/* ---------- 验证码行：输入框+图片 横排 ---------- */
+.captcha-row {
+  display: flex;          /* flex 横向排 */
+  gap: 8px;               /* 子元素间距 */
+}
+
+.captcha-row input {
+  flex: 1;                /* 占满剩余宽度 */
+}
+
+.captcha-row img {
+  height: 42px;           /* 跟输入框差不多高，对齐 */
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+/* ---------- 底部提示 ---------- */
+.tip {
+  margin-top: 16px;
+  font-size: 13px;
+  text-align: center;
+  color: #888;
+}
+
+.tip a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.tip a:hover {
+  text-decoration: underline;
+}

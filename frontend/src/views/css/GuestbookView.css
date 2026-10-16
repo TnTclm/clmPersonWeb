@@ -1,0 +1,330 @@
+/* ============================================================
+   GuestbookView.css —— 樱花弹幕留言板 v2
+   结构：背景插画(0) → 花瓣雨(2) → 弹幕(3) → 中央(4)
+   页面一屏式；header 在本页是 static（跟页面一起滚走，不吸顶）
+   ============================================================ */
+
+/* ---------- 页面本体：整屏全幅（header 浮在上面，不占文档流） ---------- */
+.sakura-page {
+  position: relative;
+  min-height: 100vh;              /* 全屏！header 已改为浮层，不再占高度 */
+  overflow: hidden;               /* 花瓣/弹幕飞出界就裁掉 */
+  /* 渐变天空兜底：背景图没加载/没放时也不至于白屏 */
+  background: linear-gradient(
+    180deg,
+    #ffe3ee 0%,
+    #ffd3e6 30%,
+    #f6c8e8 55%,
+    #d9c6f2 78%,
+    #cdd7f5 100%
+  );
+}
+
+/* ---------- ① 背景插画（public/images/sakura-bg.jpg） ---------- */
+.sakura-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;      /* 任何窗口比例都裁剪铺满，不变形 */
+  z-index: 0;
+}
+
+/* 柔光遮罩：给画面蒙一层薄雾，弹幕文字更清晰，整体更"逆光" */
+.sakura-veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 235, 243, 0.1) 0%,
+    rgba(255, 235, 243, 0.28) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ---------- 没背景图时的手绘替补场景 ---------- */
+.scene-wrap {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: min(48vw, 520px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.scene-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.tree-sway {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: tree-sway 8s ease-in-out infinite alternate;
+}
+
+@keyframes tree-sway {
+  from { transform: rotate(-0.5deg); }
+  to   { transform: rotate(0.6deg); }
+}
+
+/* ---------- ③ 花瓣雨 ---------- */
+.petal-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* 外层：匀速下落 */
+.petal-fall {
+  position: absolute;
+  top: -6vh;
+  animation-name: petal-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes petal-fall {
+  to { transform: translateY(115vh); }
+}
+
+/* 内层：摇曳 + 旋转 */
+.petal-sway {
+  border-radius: 100% 0 100% 0;
+  box-shadow: 0 0 6px rgba(255, 173, 209, 0.5);
+  animation-name: petal-sway;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+@keyframes petal-sway {
+  from { transform: translateX(-26px) rotate(15deg); }
+  to   { transform: translateX(26px) rotate(-20deg); }
+}
+
+/* ---------- ④ 弹幕层 ---------- */
+.dm-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.dm-item {
+  position: absolute;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(214, 130, 173, 0.3);
+  white-space: nowrap;
+  pointer-events: auto;
+  animation-name: dm-fly;
+  animation-timing-function: linear;
+  animation-iteration-count: 1;   /* 只飞一次！飞走就算了 */
+  animation-fill-mode: both;      /* 还没到出场时间的（正延迟）先藏起来 */
+  will-change: transform;
+}
+
+.dm-item:hover {
+  animation-play-state: paused;   /* 悬停暂停，来得及看和删 */
+}
+
+@keyframes dm-fly {
+  from { transform: translateX(100vw); }
+  to   { transform: translateX(-100%); }
+}
+
+.dm-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.dm-name {
+  font-size: 12px;
+  color: #b06a8c;
+  font-weight: 600;
+}
+
+.dm-text {
+  font-size: 14px;
+  color: #7a4a63;
+}
+
+.dm-del {
+  border: none;
+  background: rgba(214, 130, 173, 0.2);
+  color: #b06a8c;
+  width: 18px;
+  height: 18px;
+  line-height: 16px;
+  border-radius: 50%;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.dm-del:hover {
+  background: #ef7285;
+  color: #fff;
+}
+
+/* ---------- 背景视频控制：右下角小圆钮，半透明不抢戏 ---------- */
+.bg-controls {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 5;
+}
+
+.bg-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(6px);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a4b66;
+  transition: background 0.2s;
+}
+
+.bg-btn:hover {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* ---------- ⑤ 中央内容：标题 + 输入胶囊 ---------- */
+.gb-center {
+  position: relative;
+  z-index: 4;
+  text-align: center;
+  padding: 14vh 16px 0;
+  pointer-events: none;  /* 关键！容器本身对鼠标透明，让底下的弹幕能被悬停/点击 */
+}
+
+/* 真正要交互的控件，把鼠标事件接回来 */
+.gb-capsule,
+.gb-tools {
+  pointer-events: auto;
+}
+
+.gb-title {
+  font-family: "STKaiti", "KaiTi", "Noto Serif SC", serif;
+  font-size: 52px;
+  letter-spacing: 14px;
+  color: #8a4b66;
+  margin: 0;
+  text-shadow: 0 2px 12px rgba(255, 255, 255, 0.85);
+}
+
+.gb-sub {
+  font-size: 14px;
+  line-height: 1.9;
+  color: #a86b8a;
+  margin: 16px 0 30px;
+  text-shadow: 0 1px 8px rgba(255, 255, 255, 0.8);
+}
+
+.gb-capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: min(440px, 86vw);
+  padding: 8px 8px 8px 20px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  box-shadow: 0 6px 24px rgba(214, 130, 173, 0.3);
+}
+
+.gb-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: #7a4a63;
+}
+
+.gb-input::placeholder {
+  color: #c99aab;
+}
+
+.gb-send {
+  border: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ef7285;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.gb-send:hover {
+  transform: translateX(3px) rotate(-8deg);
+  background: #e75d73;
+}
+
+.gb-send:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gb-tools {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  margin-top: 14px;
+}
+
+.gb-count {
+  font-size: 12px;
+  color: #b58aa0;
+}
+
+.gb-login {
+  color: #b06a8c;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px dashed #b06a8c;
+}
+
+/* "再放一遍弹幕"：透明小按钮，平时低调 */
+.gb-replay {
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: #b58aa0;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.gb-replay:hover {
+  background: rgba(255, 255, 255, 0.7);
+  color: #b06a8c;
+}

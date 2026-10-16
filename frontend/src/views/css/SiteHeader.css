@@ -1,0 +1,297 @@
+/* ============================================================
+   SiteHeader.css —— 头部样式（白色简约：白底 + 细分割线 + 蓝色点缀）
+   布局：左头像 ······ 右（导航 | 登录注册）
+   ============================================================ */
+
+/* ---------- 头部整体：白色吸顶 ---------- */
+.site-header {
+  position: sticky;   /* 吸顶：平时跟着滚，到顶了粘住不动 */
+  top: 0;
+  z-index: 100;       /* 保证压在其他内容上面 */
+  background: #fff;
+  border-bottom: 1px solid #ececec;
+}
+
+/* 内容区：限宽 + 居中，左右两端布局 */
+.header-inner {
+  max-width: 1080px;
+  margin: 0 auto;      /* 左右auto = 水平居中 */
+  height: 60px;
+  display: flex;       /* 横向排列 */
+  align-items: center; /* 垂直居中 */
+  justify-content: space-between; /* 两端对齐：头像最左，右侧组最右 */
+  padding: 0 16px;
+}
+
+/* ---------- 左侧头像 logo ---------- */
+.logo {
+  display: flex;       /* 让 img 在链接里规矩排布 */
+  align-items: center;
+}
+
+.logo-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;  /* 裁成圆形 */
+  /* object-fit:cover 图片按比例裁剪填满圆框，
+     以后换不方的图也不会被拉变形 */
+  object-fit: cover;
+  display: block;      /* 去掉 img 默认底部的小空隙 */
+}
+
+/* ---------- 右侧组：导航 + 分割线 + 登录区 ---------- */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;           /* 导航、分割线、登录区三块之间的间距 */
+}
+
+/* 导航链接 */
+.nav {
+  display: flex;
+  gap: 24px;
+}
+
+.nav a {
+  color: #444;
+  text-decoration: none;
+  font-size: 15px;
+}
+
+.nav a:hover {
+  color: #2563eb;
+}
+
+/* RouterLink 自动给"当前页面"的链接加 router-link-active 类，
+   为它写样式 = 在哪个页面，哪个导航亮 */
+.nav a.router-link-active {
+  color: #2563eb;
+  font-weight: 600;
+  position: relative;  /* 给下面小横条当定位基准 */
+}
+
+/* ::after：在当前导航末尾画一个 2px 蓝色小横条 */
+.nav a.router-link-active::after {
+  content: '';         /* 伪元素必须有 content 才显示 */
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 2px;
+  background: #2563eb;
+  border-radius: 2px;
+}
+
+/* 竖分割线（导航和登录区之间） */
+.header-divider {
+  width: 1px;
+  height: 16px;
+  background: #ddd;
+}
+
+/* 登录区文字 */
+.auth {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth a {
+  color: #444;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.auth a:hover {
+  color: #2563eb;
+}
+
+/* 登录 | 注册 中间那个竖线字符 */
+.auth-sep {
+  color: #ccc;
+}
+
+/* 登录后的问候语 */
+.hello {
+  color: #444;
+  font-size: 14px;
+}
+
+/* ---------- 登录区（登录后）：头像+昵称，整体可点回个人空间 ---------- */
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;              /* 头像和昵称的间距 */
+}
+
+.header-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;    /* 裁成圆形，和左边logo一个风格 */
+  object-fit: cover;     /* 裁剪着填满，不变形 */
+  display: block;
+}
+
+/* 没头像时的占位：昵称首字 + 淡蓝底 */
+.avatar-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #2563eb;
+  background: #e8f0fe;
+}
+
+/* ---------- 用户下拉菜单（LeetCode 风格面板） ---------- */
+.header-user {
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+}
+
+.menu-caret {
+  font-size: 10px;
+  color: #999;
+}
+
+.user-menu-wrap {
+  position: relative;    /* 面板的定位基准 */
+  display: flex;
+  align-items: center;
+}
+
+/* 全屏透明遮罩：接住"点外面关闭" */
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+
+.user-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  width: 300px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.14);
+  padding: 14px;
+  z-index: 95;
+  animation: menu-pop 0.15s ease;   /* 弹出的小动画 */
+}
+
+@keyframes menu-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 顶部：头像 + 昵称 */
+.um-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px;
+  border: none;
+  background: none;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.um-head:hover {
+  background: #f5f7fa;
+}
+
+.um-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.um-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.um-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #222;
+}
+
+.um-go {
+  font-size: 12px;
+  color: #2563eb;
+}
+
+/* 底部退出 */
+.um-footer {
+  border-top: 1px solid #f0f0f0;
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.um-logout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px;
+  border: none;
+  background: none;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #555;
+  cursor: pointer;
+}
+
+.um-logout:hover {
+  background: #fdf0f2;
+  color: #e74c3c;
+}
+
+/* ---------- 留言页专属：弱化成"浮在画面上的薄纱" ----------
+   absolute 脱离文档流：不占高度，留言页整屏 100vh 全幅展开；
+   全透明背景：只留一行字浮在樱花天空上，滚动时跟着滚走 */
+.header-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: transparent;
+  border-bottom-color: transparent;
+  backdrop-filter: none;
+}
+
+/* ---------- 爱心页专属：深空底上的浅色导航 ----------
+   舞台是深紫黑，默认的深灰文字会看不见，全部换浅色/粉色系 */
+.header-dark .nav a,
+.header-dark .auth a,
+.header-dark .hello,
+.header-dark .menu-caret {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.header-dark .nav a:hover {
+  color: #ff8fb5;
+}
+
+/* 当前页高亮的小横条也换成爱心粉 */
+.header-dark .nav a.router-link-active {
+  color: #ff8fb5;
+}
+
+.header-dark .nav a.router-link-active::after {
+  background: #ff8fb5;
+}
+
+/* 分割线换白色半透明 */
+.header-dark .header-divider {
+  background: rgba(255, 255, 255, 0.25);
+}
