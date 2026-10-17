@@ -1,0 +1,7 @@
+# 构建前端镜像时忽略：依赖目录和上次的打包产物
+node_modules
+dist
+
+# 本地文件和日志
+.DS_Store
+*.log

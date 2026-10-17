@@ -1,0 +1,94 @@
+# ============================================================
+# 生产环境编排文件：一条命令拉起整个网站
+#
+# 常用命令（在服务器上、本文件所在目录执行）：
+#   docker compose up -d --build    构建镜像并后台启动
+#   docker compose ps               查看所有容器状态
+#   docker compose logs -f backend  实时看后端日志（Ctrl+C 退出）
+#   docker compose restart backend  只重启后端
+#   docker compose down             全部停止（数据仍然保留）
+#
+# 安全要点：只有 frontend（Nginx）对外开放 80 端口；
+# MySQL / Redis / RabbitMQ 只在 Docker 内部网络里互相访问，
+# 外网根本连不进来。
+# 带 ${...} 的变量从同目录的 .env 文件读取。
+# ============================================================
+
+services:
+
+  # ---------- 数据库 ----------
+  mysql:
+    image: mysql:8.0
+    container_name: clm-mysql
+    # 自动重启：进程挂了/服务器重启后自己爬起来
+    # （手动 docker compose stop 的不会自己起，比 always 更听话）
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}   # 从 .env 读，首次启动时创建 root 密码
+      MYSQL_DATABASE: ${DB_NAME}            # 首次启动时自动建这个库
+      TZ: Asia/Shanghai                     # 容器内时区，保证 created_at 是北京时间
+    command:
+      # 建库就用 utf8mb4：中文、emoji 都不会乱码
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      # 数据持久化：左边是宿主机目录，右边是容器内目录
+      # 容器删了重建，数据还在（重点！）
+      - ./data/mysql:/var/lib/mysql
+
+  # ---------- 缓存 ----------
+  redis:
+    image: redis:7-alpine
+    container_name: clm-redis
+    restart: unless-stopped
+    volumes:
+      # Redis 的持久化快照也存到宿主机，重启不丢验证码/点赞数据
+      - ./data/redis:/data
+
+  # ---------- 消息队列 ----------
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: clm-rabbit
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data/rabbitmq:/var/lib/rabbitmq
+
+  # ---------- 后端（Go） ----------
+  backend:
+    # 用当前目录的 Dockerfile 构建镜像（第一次 up 会自动编译）
+    build: .
+    container_name: clm-backend
+    restart: unless-stopped
+    # 把 .env 里的变量全部注入容器
+    # （DB_HOST=mysql、REDIS_ADDR=redis:6379 这些都在 .env 里写了）
+    env_file: .env
+    volumes:
+      # 用户上传的图片存宿主机：容器重建、重新部署都不会丢
+      - ./uploads:/app/uploads
+      # 主页图片墙的照片
+      - ./pictures:/app/pictures
+    depends_on:
+      # 先启动数据库等，再启动后端。
+      # 注意：这只保证"启动顺序"，不保证"已经就绪"——
+      # MySQL 首次初始化要几十秒，后端连不上会退出，
+      # 靠上面的 restart 自动重试，直到连上为止
+      - mysql
+      - redis
+      - rabbitmq
+
+  # ---------- 前端（Vue + Nginx） ----------
+  frontend:
+    # 用 frontend/Dockerfile 构建
+    build: ./frontend
+    container_name: clm-frontend
+    restart: unless-stopped
+    ports:
+      # 宿主机 80 端口 → 容器 80 端口
+      # 这是整个项目唯一对外开放的端口（阿里云防火墙也只开 80/443）
+      - "80:80"
+    depends_on:
+      - backend
