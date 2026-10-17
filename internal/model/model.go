@@ -67,3 +67,16 @@ type Activity struct {
 	Date   string `gorm:"uniqueIndex:idx_user_date;size:10" json:"date"` // 日期字符串，如 "2026-10-14"（直接存字符串，省去时区换算）
 	Count  int    `json:"count"`                                         // 当天活跃次数：上线记1次，每创作一次再+1
 }
+
+// Notification 通知（有人评论/留言时，给博主记一条）
+// 存在 MySQL 而不是 Redis：通知是要长期保留的数据，服务重启不能丢
+type Notification struct {
+	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	ToUserID  uint      `gorm:"index" json:"to_user_id"` // 收件人（目前就是博主）
+	Kind      string    `gorm:"size:20" json:"kind"`     // comment=评论 / message=留言
+	Nickname  string    `gorm:"size:50" json:"nickname"` // 谁发的
+	Content   string    `gorm:"size:500" json:"content"` // 说了什么
+	TalkID    uint      `json:"talk_id"`                 // 评论挂在哪条说说（留言是 0）
+	IsRead    bool      `gorm:"default:false" json:"is_read"`
+	CreatedAt time.Time `json:"created_at"`
+}

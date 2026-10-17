@@ -17,8 +17,11 @@ import (
 // ============================================================
 
 const (
-	QueueNotify       = "notify"        // 正常队列：评论/留言 → 博主的未读提醒
-	QueueNotifyFailed = "notify.failed" // 死信队列：处理失败的消息会被转到这里，方便排查
+	QueueNotify       = "notify"        // 主队列：评论/留言 → 博主的未读提醒
+	QueueNotifyRetry  = "notify.retry"  // 重试队列：消息在这里"关禁闭"几秒，然后自动回到主队列
+	QueueNotifyFailed = "notify.failed" // 最终失败队列：重试次数用尽后进这里，只记录
+	maxRetry          = 3               // 最多重试 3 次
+	retryDelayMs      = 10000           // 每次重试间隔 10 秒
 )
 
 var (
@@ -41,20 +44,26 @@ func Connect(url string) error {
 	if err != nil {
 		return err
 	}
-	// ① 先声明"死信队列"：处理失败的消息最终流到这里，方便事后排查
+	// ① 最终失败队列：重试用尽的消息进这里（只记录，不再动它）
 	if _, err = pubCh.QueueDeclare(QueueNotifyFailed, true, false, false, false, nil); err != nil {
 		return err
 	}
-	// ② 再声明"正常队列"，并挂上死信规则。
-	//    参数：(队列名, durable, autoDelete, exclusive, noWait, args)
-	//      durable=true → 队列持久化：RabbitMQ 重启后队列还在
-	//      x-dead-letter-exchange/routing-key → "这条消息处理失败了，请转去 notify.failed"
-	//    ⚠️ 队列已存在时，参数必须和上次完全一致，否则 RabbitMQ 报 PRECONDITION_FAILED
-	args := amqp.Table{
-		"x-dead-letter-exchange":    "",                // 空串 = 默认交换机
-		"x-dead-letter-routing-key": QueueNotifyFailed, // 转给死信队列
+	// ② 重试队列：消息在这里"关禁闭" 10 秒。
+	//    x-message-ttl = 消息存活 10 秒；到点过期后，按死信规则自动回到主队列 ——
+	//    这就是 RabbitMQ 里实现"延迟重试"的经典手法（不用额外的定时器）
+	if _, err = pubCh.QueueDeclare(QueueNotifyRetry, true, false, false, false, amqp.Table{
+		"x-message-ttl":             int32(retryDelayMs),
+		"x-dead-letter-exchange":    "",
+		"x-dead-letter-routing-key": QueueNotify,
+	}); err != nil {
+		return err
 	}
-	if _, err = pubCh.QueueDeclare(QueueNotify, true, false, false, false, args); err != nil {
+	// ③ 主队列：处理失败时不是直接丢弃，而是转去"重试队列"
+	//    ⚠️ 队列已存在时参数必须和上次完全一致，否则 RabbitMQ 报 PRECONDITION_FAILED
+	if _, err = pubCh.QueueDeclare(QueueNotify, true, false, false, false, amqp.Table{
+		"x-dead-letter-exchange":    "",
+		"x-dead-letter-routing-key": QueueNotifyRetry,
+	}); err != nil {
 		return err
 	}
 	ready = true
@@ -113,10 +122,20 @@ func Consume(queue string, handle func([]byte) error) error {
 	go func() {
 		for d := range msgs {
 			if err := handle(d.Body); err != nil {
-				slog.Error("通知消息处理失败", "err", err)
-				// requeue=false：不重新入队。
-				// 因为重投的还是同一份数据、大概率还是失败，会变成死循环。
-				// 生产上更稳的做法是配"死信队列"(DLX) 把失败消息收集起来慢慢查。
+				// 这条消息已经"死信"过几次了？（RabbitMQ 记在 x-death 头里）
+				tries := retryCount(d.Headers)
+				if tries >= maxRetry {
+					slog.Error("重试次数用尽，转入失败队列", "err", err, "已重试次数", tries)
+					// 转存到"最终失败队列"，再把原消息确认掉（不然它会一直循环）
+					if perr := PublishRaw(QueueNotifyFailed, d.Body); perr != nil {
+						slog.Error("转存失败队列也失败了", "err", perr)
+					}
+					_ = d.Ack(false)
+					continue
+				}
+				slog.Warn("消息处理失败，稍后自动重试", "err", err, "已重试次数", tries)
+				// 不重新入队 → 走主队列的死信规则进入"重试队列"，
+				// 10 秒后 TTL 到期，自动回到主队列重新消费
 				_ = d.Nack(false, false) // (多重确认, 是否重新入队)
 				continue
 			}
@@ -124,6 +143,51 @@ func Consume(queue string, handle func([]byte) error) error {
 		}
 	}()
 	return nil
+}
+
+// retryCount 从消息头里读"它已经进过几次重试队列"
+// RabbitMQ 每次把消息死信出去，都会往 x-death 里记一笔（同一个队列会累计到 count）
+func retryCount(headers amqp.Table) int {
+	if headers == nil {
+		return 0
+	}
+	raw, ok := headers["x-death"]
+	if !ok {
+		return 0 // 第一次失败，还没有 x-death
+	}
+	// x-death 的结构：[]interface{}{ amqp.Table{"queue":..., "count":...}, ... }
+	list, ok := raw.([]interface{})
+	if !ok {
+		return 0
+	}
+	for _, it := range list {
+		m, ok := it.(amqp.Table)
+		if !ok {
+			continue
+		}
+		// 只数"进过重试队列"的次数
+		if q, _ := m["queue"].(string); q == QueueNotifyRetry {
+			if c, ok := m["count"].(int64); ok {
+				return int(c)
+			}
+		}
+	}
+	return 0
+}
+
+// PublishRaw 把一段"已经是字节"的消息原样丢进队列
+// （转存失败消息时用：消息本来就是 JSON 字节，不用再序列化一遍）
+func PublishRaw(queue string, body []byte) error {
+	if !ready {
+		return errors.New("RabbitMQ 未连接")
+	}
+	pubMu.Lock()
+	defer pubMu.Unlock()
+	return pubCh.PublishWithContext(context.Background(), "", queue, false, false, amqp.Publishing{
+		ContentType:  "application/json",
+		DeliveryMode: amqp.Persistent,
+		Body:         body,
+	})
 }
 
 // Close 关闭连接（优雅关闭的最后一步调用）

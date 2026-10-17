@@ -1,30 +1,22 @@
 package notify
 
 import (
-	"context"
 	"encoding/json"
 	"log/slog"
-	"strconv"
 	"time"
 
 	"blog/internal/config"
 	"blog/internal/database"
+	"blog/internal/model"
 )
 
 // ============================================================
 // 通知模块 —— 消费者负责"写"，接口负责"读"
 //
-// 数据全放 Redis（理由：它只是"轻量提醒"，丢了不致命；
-// 而且不需要建表、查询也快）：
-//   notify:list:{用户ID}    LIST    最近的通知（JSON 字符串，最新的在最前）
-//   notify:unread:{用户ID}  STRING  未读计数
+// 数据存 MySQL 的 notifications 表（原来存 Redis）：
+// 通知是要长期保留的数据，Redis 一重启就没了，不适合。
+// 分页、已读状态也都交给数据库处理。
 // ============================================================
-
-const (
-	listKeyPrefix   = "notify:list:"
-	unreadKeyPrefix = "notify:unread:"
-	maxKeep         = 50 // 每个用户最多留 50 条，更旧的自动滚掉
-)
 
 // Msg 队列里传的消息格式（生产者和消费者之间的"约定"）
 // 改这里的字段名 = 改协议，两边都要同步改
@@ -69,54 +61,50 @@ func HandleMessage(body []byte) error {
 	return Add(ownerID, item)
 }
 
-// Add 给某个用户加一条通知（未读数 +1）
+// Add 给某个用户记一条通知（入库，重启不丢）
 func Add(userID uint, item Item) error {
-	ctx := context.Background()
-	uid := strconv.FormatUint(uint64(userID), 10)
-	listKey := listKeyPrefix + uid
-
-	body, err := json.Marshal(item)
-	if err != nil {
-		return err
+	n := model.Notification{
+		ToUserID: userID,
+		Kind:     item.Kind,
+		Nickname: item.Nickname,
+		Content:  item.Content,
+		TalkID:   item.TalkID,
 	}
-	// LPUSH：塞到列表头部（最新的排最前，前端直接展示就行）
-	if err := database.RDB.LPush(ctx, listKey, body).Err(); err != nil {
-		return err
-	}
-	// LTRIM：只保留前 maxKeep 条，后面的砍掉（防止列表无限变长吃内存）
-	if err := database.RDB.LTrim(ctx, listKey, 0, maxKeep-1).Err(); err != nil {
-		return err
-	}
-	// 未读计数 +1
-	return database.RDB.Incr(ctx, unreadKeyPrefix+uid).Err()
+	return database.DB.Create(&n).Error
 }
 
 // List 读"从第 offset 条开始的 limit 条"通知 + 未读数
-// （Redis 的 LIST 天然支持按下标取，分页就是换个下标的事）
+// （数据库分页 = ORDER BY + OFFSET + LIMIT，和别的列表接口一个套路）
 func List(userID uint, offset, limit int) ([]Item, int64, error) {
-	ctx := context.Background()
-	uid := strconv.FormatUint(uint64(userID), 10)
-
-	// LRANGE start stop：取列表下标 [start, stop] 的闭区间
-	// 第 1 页 offset=0；第 2 页 offset=20……
-	raw, err := database.RDB.LRange(ctx, listKeyPrefix+uid, int64(offset), int64(offset+limit-1)).Result()
+	rows := []model.Notification{}
+	err := database.DB.
+		Where("to_user_id = ?", userID).
+		Order("id DESC"). // 新的在前（id 自增，比按时间排序还稳）
+		Offset(offset).
+		Limit(limit).
+		Find(&rows).Error
 	if err != nil {
 		return nil, 0, err
 	}
-	items := []Item{} // 老规矩：空也要返回 []，不能是 null
-	for _, s := range raw {
-		var it Item
-		if err := json.Unmarshal([]byte(s), &it); err != nil {
-			continue // 单条坏了就跳过，别让整个列表读不出来
-		}
-		items = append(items, it)
+
+	// 转成前端要的形状（Item.Time 是格式化好的字符串，前端不用处理时区）
+	items := []Item{}
+	for _, r := range rows {
+		items = append(items, Item{
+			Kind:     r.Kind,
+			Nickname: r.Nickname,
+			Content:  r.Content,
+			TalkID:   r.TalkID,
+			Time:     r.CreatedAt.Format("2006-01-02 15:04"),
+		})
 	}
 
-	// 未读数：key 不存在时 Get 会返回 redis.Nil 错误，这里当作 0
-	unread, err := database.RDB.Get(ctx, unreadKeyPrefix+uid).Int64()
-	if err != nil {
-		unread = 0
-	}
+	// 未读数 = 这个人的未读通知有几条
+	var unread int64
+	database.DB.Model(&model.Notification{}).
+		Where("to_user_id = ? AND is_read = ?", userID, false).
+		Count(&unread)
+
 	return items, unread, nil
 }
 
@@ -127,8 +115,9 @@ func HandleFailed(body []byte) error {
 	return nil // 记录完就算处理成功，避免"死信的死信"无限套娃
 }
 
-// MarkRead 把未读数清零（用户点开看过了）
+// MarkRead 把某人的通知全部标记为已读
 func MarkRead(userID uint) error {
-	uid := strconv.FormatUint(uint64(userID), 10)
-	return database.RDB.Del(context.Background(), unreadKeyPrefix+uid).Err()
+	return database.DB.Model(&model.Notification{}).
+		Where("to_user_id = ? AND is_read = ?", userID, false).
+		Update("is_read", true).Error
 }

@@ -31,7 +31,7 @@ func ConnectDB() {
 
 // autoMigrate   自动建表：表不存在就创建，存在但字段有出入就补齐（不会删数据）
 func AutoMigrate() {
-	err := DB.AutoMigrate(&model.User{}, &model.Comment{}, &model.Talk{}, &model.AlbumPost{}, &model.AlbumItem{}, &model.Message{}, &model.Activity{})
+	err := DB.AutoMigrate(&model.User{}, &model.Comment{}, &model.Talk{}, &model.AlbumPost{}, &model.AlbumItem{}, &model.Message{}, &model.Activity{}, &model.Notification{})
 	if err != nil {
 		logger.Fatal("mysql自动建表失败", "err:", err)
 	}
