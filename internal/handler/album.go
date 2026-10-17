@@ -138,11 +138,24 @@ func isVideoExt(ext string) bool {
 // ListAlbum 相册列表（公开）：一条 = 一段说明 + 它的所有媒体
 // GET /api/album
 func ListAlbum(c *gin.Context) {
+	page, size := pageParams(c)
 	posts := []model.AlbumPost{}
-	database.DB.Order("created_at DESC").Limit(50).Find(&posts)
+	database.DB.Order("created_at DESC").Offset((page - 1) * size).Limit(size + 1).Find(&posts)
+	hasMore := len(posts) > size // 多取的那条 = 后面还有
+	if hasMore {
+		posts = posts[:size]
+	}
 
+	// 只查"这一页帖子"的媒体。
+	// 以前是全表查再用内存过滤：帖子一多，等于每次都白查一堆用不上的数据
 	items := []model.AlbumItem{}
-	database.DB.Order("created_at ASC").Find(&items)
+	if len(posts) > 0 {
+		ids := make([]uint, 0, len(posts))
+		for _, p := range posts {
+			ids = append(ids, p.ID)
+		}
+		database.DB.Where("post_id IN ?", ids).Order("created_at ASC").Find(&items)
+	}
 
 	// 内存组装：把媒体按 post_id 归堆挂到各自的 post 上
 	data := []gin.H{}
@@ -160,7 +173,7 @@ func ListAlbum(c *gin.Context) {
 			"medias":     medias,
 		})
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 200, "data": data})
+	pageResult(c, data, hasMore)
 }
 
 // UpdateAlbumPost 编辑相册内容的说明（博主专属）

@@ -14,6 +14,8 @@ import (
 	"blog/internal/database"
 	"blog/internal/handler"
 	"blog/internal/logger"
+	"blog/internal/mq"
+	"blog/internal/notify"
 	"blog/internal/router"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +36,18 @@ func main() {
 	database.AutoMigrate()
 	// /internal/handler  创建验证码生成器
 	handler.InitCaptcha()
+	// 连接 RabbitMQ 并启动"通知消费者"
+	// 注意：连不上不致命 —— 博客照常跑，只是少了未读提醒这个功能。
+	// （启动顺序也有讲究：消费者要用 Redis，所以得在 ConnectRedis 之后）
+	if err := mq.Connect(config.Cfg.RabbitMQURL); err != nil {
+		slog.Warn("RabbitMQ 连接失败，通知功能暂不可用", "err", err)
+	} else if err := mq.Consume(mq.QueueNotify, notify.HandleMessage); err != nil {
+		slog.Warn("通知消费者启动失败", "err", err)
+	} else {
+		// 再起一个"死信消费者"：只负责把处理失败的消息记进日志，方便排查
+		_ = mq.Consume(mq.QueueNotifyFailed, notify.HandleFailed)
+		slog.Info("RabbitMQ 已连接，通知消费者已启动（含死信队列）")
+	}
 	// uploads 及各分类子目录不存在就自动创建
 	// （资源分类管理：头像/说说/相册各回各家，MkdirAll 已存在也不报错）
 	for _, dir := range []string{"uploads", "uploads/avatar", "uploads/talk", "uploads/album"} {
@@ -92,11 +106,12 @@ func main() {
 		slog.Error("优雅关闭超时，强制退出", "err", err)
 	}
 
-	// 收尾：把数据库 / Redis 连接也关掉，干干净净地走
+	// 收尾：把数据库 / Redis / RabbitMQ 连接也关掉，干干净净地走
 	if sqlDB, err := database.DB.DB(); err == nil {
 		_ = sqlDB.Close()
 	}
 	_ = database.RDB.Close()
+	mq.Close()
 
 	slog.Info("已安全退出，拜拜 👋")
 }

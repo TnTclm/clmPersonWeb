@@ -41,16 +41,36 @@ function imgGridClass(p) {
   return 'three'
 }
 
-async function loadAlbum() {
-  loading.value = true
+// ---------- 分页状态 ----------
+const page = ref(1)            // 当前第几页
+const hasMore = ref(false)     // 后端说"后面还有没有"
+const loadingMore = ref(false) // 正在加载下一页
+
+// reset=true：从第 1 页重拉（首次进页面 / 发完新内容后）
+async function loadAlbum(reset = true) {
+  if (reset) {
+    loading.value = true // 只有"重拉"才显示整页的"加载中"
+    page.value = 1
+  }
   try {
-    const res = await api.get('/api/album')
-    posts.value = res.data.map(decorate)
+    const res = await api.get('/api/album?page=' + page.value)
+    const list = res.data.map(decorate)
+    posts.value = reset ? list : posts.value.concat(list)
+    hasMore.value = res.has_more
   } catch (e) {
     ElMessage.error(e.message)
   } finally {
-    loading.value = false
+    if (reset) loading.value = false
   }
+}
+
+// 点"加载更多"：页码 +1，追加到后面
+async function loadMoreAlbum() {
+  if (loadingMore.value || !hasMore.value) return
+  loadingMore.value = true
+  page.value += 1
+  await loadAlbum(false)
+  loadingMore.value = false
 }
 
 // ---------- 发布（博主）：说明 + 多选文件，一次提交 ----------
@@ -260,6 +280,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           <button class="card-del" @click="removePost(p)">删除</button>
         </span>
       </div>
+    </div>
+
+    <!-- 分页：后端说还有 → 显示"加载更多" -->
+    <div v-if="hasMore" class="load-more-wrap">
+      <button class="load-more" :disabled="loadingMore" @click="loadMoreAlbum">
+        {{ loadingMore ? '加载中…' : '加载更多' }}
+      </button>
     </div>
 
     <!-- 视频大播放器弹层：点遮罩空白处 / 右上角× / ESC 关闭 -->

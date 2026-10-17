@@ -305,3 +305,31 @@
   color: #999;
   padding: 80px 0;
 }
+
+/* ---------- 分页：加载更多 ---------- */
+.load-more-wrap {
+  display: flex;
+  justify-content: center; /* 按钮居中 */
+  padding: 20px 0 8px;
+}
+
+.load-more {
+  padding: 8px 28px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;    /* 胶囊形，和导航一个语言 */
+  background: #fff;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, color 0.18s ease;
+}
+
+.load-more:hover:not(:disabled) {
+  border-color: #0d9488;
+  color: #0d9488;
+}
+
+.load-more:disabled {
+  color: #aaa;
+  cursor: not-allowed;
+}

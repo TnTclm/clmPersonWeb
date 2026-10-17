@@ -38,6 +38,8 @@ func CreateMessage(c *gin.Context) {
 		return
 	}
 	TouchActivity(c.GetUint("user_id")) // 活跃度+1（热力图）
+	// 异步通知博主："有人留言了"（丢进消息队列，失败了也不影响留言本身）
+	publishNotify(c, "message", msg.Content, 0)
 	c.JSON(http.StatusOK, gin.H{"code": 200, "msg": "留言成功", "data": msg})
 }
 
@@ -52,13 +54,25 @@ type MessageWithUser struct {
 func ListMessages(c *gin.Context) {
 	// 空切片初始化（nil 转 JSON 是 null，老规矩）
 	messages := []MessageWithUser{}
+	page, size := pageParams(c)
 	database.DB.Table("messages").
 		Select("messages.*, users.avatar AS avatar").
 		Joins("LEFT JOIN users ON users.id = messages.user_id").
-		Order("messages.created_at ASC"). // 旧的先入轨，弹幕轨道分配更稳定
-		Limit(100).
+		Order("messages.created_at DESC"). // 先按"最新在前"取一页 —— 第1页就是最新的一批
+		Offset((page - 1) * size).
+		Limit(size + 1). // 多取 1 条用来判断"后面还有没有"
 		Scan(&messages)
-	c.JSON(http.StatusOK, gin.H{"code": 200, "data": messages})
+
+	// 有探路的那条 → 后面还有（把它切掉再返回）
+	hasMore := len(messages) > size
+	if hasMore {
+		messages = messages[:size]
+	}
+	// 弹幕渲染希望"旧的先起飞"，所以把这一页再倒过来（时间正序）
+	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
+		messages[i], messages[j] = messages[j], messages[i]
+	}
+	pageResult(c, messages, hasMore)
 }
 
 // DeleteMessage 删除留言（需要登录：自己的留言自己删，博主谁的都能删）

@@ -5,8 +5,9 @@
 //       组件挂载时问一次；登录/登出时由对应页面调 fetchMe() 同步
 // ============================================================
 
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { api } from '@/api'
 import { me, fetchMe } from '@/stores/me'   // 共享状态：登录人信息
 import defaultAvatar from '@/assets/images/avatar-default.svg' // 默认灰头像（没传头像的人用）
 import AvatarBurst from '@/components/AvatarBurst.vue' // 点了会迸发小图案的头像（可复用组件）
@@ -27,15 +28,82 @@ function onScroll() {
   scrolled.value = window.scrollY > 8   // 滚过 8px 就算"离开顶部"（留一点容错）
 }
 
+// ---------- 未读提醒（评论/留言通知，只有博主有）----------
+const unread = ref(0)         // 未读条数（红点上的数字）
+const notifyOpen = ref(false) // 通知面板是否展开
+const notifyItems = ref([])   // 通知列表
+const notifyPage = ref(1)     // 当前第几页通知
+const notifyHasMore = ref(false)   // 后面还有没有更早的
+const notifyLoadingMore = ref(false)
+
+// 拉通知：reset=true 从第 1 页重拉；false 只追加下一页
+async function loadNotify(reset = true) {
+  if (!me.value || !me.value.is_owner) return // 只有博主才有通知，别人不用请求
+  try {
+    if (reset) notifyPage.value = 1
+    const res = await api.get('/api/notifications?page=' + notifyPage.value)
+    const list = res.data.items
+    notifyItems.value = reset ? list : notifyItems.value.concat(list)
+    unread.value = res.data.unread
+    notifyHasMore.value = res.has_more
+  } catch (err) {
+    // 通知拉不到不是错误（比如后端重启中）：静默处理，别打扰用户
+  }
+}
+
+// 加载更早的通知
+async function loadMoreNotify() {
+  if (notifyLoadingMore.value || !notifyHasMore.value) return
+  notifyLoadingMore.value = true
+  notifyPage.value += 1
+  await loadNotify(false)
+  notifyLoadingMore.value = false
+}
+
+// 点一条通知：关掉面板 + 跳到对应的说说（留言没有 talk_id，就只关面板）
+function goNotify(n) {
+  notifyOpen.value = false
+  if (n.talk_id) router.push('/talks/' + n.talk_id)
+}
+
+// 点铃铛：打开面板 → 刷新列表 → 红点清零 → 告诉后端"看过了"
+async function openNotify() {
+  notifyOpen.value = true
+  await loadNotify()
+  unread.value = 0 // 界面上的红点先消失（不等请求回来，手感更跟手）
+  try {
+    await api.post('/api/notifications/read', {})
+  } catch (err) {
+    // 标记已读失败也不影响看列表
+  }
+}
+
+// me 是异步加载的：等它到了再拉通知（项目的标准套路）
+watch(
+  me,
+  (val) => {
+    if (val && val.is_owner) loadNotify()
+  },
+  { immediate: true }
+)
+
+// 定时轮询：每 30 秒问一次有没有新消息（不轮询的话要刷新页面才看得到）
+let notifyTimer = null
+
 onMounted(() => {
   fetchMe()   // 问一次"我是谁"（me 是共享 ref，值一变 header 自动更新）
   // passive: true = 告诉浏览器"这监听器不会阻止滚动"，滚动性能更好
   window.addEventListener('scroll', onScroll, { passive: true })
   onScroll()  // 万一是刷新在页面中间打开的，先手动算一次
+  // 面板开着的时候不轮询 —— 否则会把你翻了好几页的列表重置回第 1 页
+  notifyTimer = setInterval(() => {
+    if (!notifyOpen.value) loadNotify()
+  }, 30000)
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', onScroll)  // 销毁时摘掉监听，防止内存泄漏
+  clearInterval(notifyTimer)                      // 定时器也要停，不然会一直跑
 })
 
 // ---------- 用户菜单（LeetCode 式下拉面板） ----------
@@ -88,6 +156,51 @@ function logout() {
           <RouterLink to="/guestbook">🌸 留言</RouterLink>
           <RouterLink to="/heart">💖 爱心</RouterLink>
         </nav>
+
+        <!-- 未读提醒：只有博主看得到（别人没有通知可看，不显示这个铃铛） -->
+        <div v-if="me && me.is_owner" class="notify-wrap">
+          <button class="notify-btn" title="新的评论 / 留言" @click="openNotify">
+            <span class="notify-emoji">💌</span>
+            <!-- 红点：未读数（超过 99 就显示 99+，不然会把铃铛撑爆） -->
+            <span v-if="unread > 0" class="notify-badge">{{ unread > 99 ? '99+' : unread }}</span>
+          </button>
+
+          <!-- 点面板外面任意处 = 关闭 -->
+          <div v-if="notifyOpen" class="menu-overlay" @click="notifyOpen = false"></div>
+
+          <!-- 通知面板：最近 20 条 -->
+          <div v-if="notifyOpen" class="notify-panel">
+            <p v-if="notifyItems.length === 0" class="notify-empty">还没有新消息～</p>
+            <!-- 点一条通知：跳到对应的说说（留言没有 talk_id，点了只关面板） -->
+            <div
+              v-for="(n, i) in notifyItems"
+              :key="i"
+              class="notify-item"
+              :class="{ 'can-go': n.talk_id }"
+              @click="goNotify(n)"
+            >
+              <span class="notify-icon">{{ n.kind === 'comment' ? '💬' : '🌸' }}</span>
+              <div class="notify-body">
+                <p class="notify-line">
+                  <b>{{ n.nickname }}</b>
+                  {{ n.kind === 'comment' ? ' 评论了你的说说' : ' 给你留了言' }}
+                </p>
+                <p class="notify-text">{{ n.content }}</p>
+                <p class="notify-time">{{ n.time }}</p>
+              </div>
+            </div>
+
+            <!-- 还有更早的通知 → 加载更多 -->
+            <button
+              v-if="notifyHasMore"
+              class="notify-more"
+              :disabled="notifyLoadingMore"
+              @click.stop="loadMoreNotify"
+            >
+              {{ notifyLoadingMore ? '加载中…' : '加载更多' }}
+            </button>
+          </div>
+        </div>
 
         <!-- 竖分割线：导航和登录区的视觉分隔（学小米的 登录|注册） -->
         <span class="header-divider"></span>

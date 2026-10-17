@@ -65,6 +65,8 @@ func CreateTalkComment(c *gin.Context) {
 	}
 	// 把存好的评论（带ID和创建时间）原样返回，前端直接塞进列表，不用重新请求
 	TouchActivity(c.GetUint("user_id")) // 活跃度+1（热力图）
+	// 异步通知博主："有人评论了"（丢进消息队列，失败了也不影响评论本身）
+	publishNotify(c, "comment", comment.Content, comment.TalkID)
 	c.JSON(http.StatusOK, gin.H{"code": 200, "msg": "评论成功", "data": comment})
 }
 
@@ -78,6 +80,7 @@ func ListTalkComments(c *gin.Context) {
 	}
 	// 空切片而不是 nil：nil 转 JSON 是 null，前端拿到会炸；[] 才是安全的空数组
 	comments := []CommentWithUser{}
+	page, size := pageParams(c) // 分页参数（评论一页默认 20 条）
 	// JOIN（连表查询）：评论表的 user_id 对上用户表的 id，
 	// 一条结果里同时有评论内容和评论者的头像
 	// LEFT JOIN：就算对不上号（用户没了），评论也要显示，头像给空串
@@ -86,11 +89,16 @@ func ListTalkComments(c *gin.Context) {
 		Joins("LEFT JOIN users ON users.id = comments.user_id").
 		Where("comments.talk_id = ?", id).
 		Order("comments.created_at ASC"). // 时间正序：像聊天记录从上往下读
-		Limit(200).
+		Offset((page - 1) * size).        // 从第 N 条开始取（"加载更多"= 往后翻页）
+		Limit(size + 1).                  // 多取 1 条用来判断"后面还有没有"
 		Scan(&comments)
 
-	// data 直接就是数组，前端取的时候别搞混
-	c.JSON(http.StatusOK, gin.H{"code": 200, "data": comments})
+	// data 直接就是数组，前端取的时候别搞混；has_more 告诉前端还有没有下一页
+	hasMore := len(comments) > size
+	if hasMore {
+		comments = comments[:size] // 探路的那条不返回
+	}
+	pageResult(c, comments, hasMore)
 }
 
 // DeleteTalkComment 删除评论（需要登录：自己的评论自己删，博主谁的都能删）

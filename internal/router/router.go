@@ -68,5 +68,7 @@ func Setup(r *gin.Engine) {
 		authed.DELETE("/album/posts/:id", handler.DeleteAlbumPost)           // 博主删除相册内容
 		authed.POST("/guestbook", handler.CreateMessage)                     // 发表留言
 		authed.DELETE("/guestbook/:id", handler.DeleteMessage)               // 删除留言
+		authed.GET("/notifications", handler.ListNotifications)              // 我的通知列表 + 未读数
+		authed.POST("/notifications/read", handler.MarkNotificationsRead)    // 未读数清零（点开看过了）
 	}
 }

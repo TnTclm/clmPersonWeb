@@ -139,16 +139,24 @@ func ListTalks(c *gin.Context) {
 	// 必须初始化成空切片！var 声明的 nil 切片转 JSON 会变成 null，
 	// 前端拿到 null 调 .map 直接报错；[] 才是安全的空数组
 	talks := []TalkWithUser{}
+	page, size := pageParams(c) // 读 ?page=1&size=20（不传就用默认值）
 	database.DB.Table("talks").
 		Select("talks.*, users.avatar AS avatar").
 		Joins("LEFT JOIN users ON users.id = talks.user_id").
 		Order("talks.created_at DESC"). // 最新的在最上，刷动态就该这样
-		Limit(50).
+		Offset((page - 1) * size).      // 跳过前面几页（第1页跳0条，第2页跳20条…）
+		Limit(size + 1).                // 故意多取 1 条：专门用来判断"后面还有没有"
 		Scan(&talks)
 
 	// 注意：每条 talk 里的 images 是 JSON 字符串，前端要 JSON.parse 一下才能用
 	fillCounters(context.Background(), talks)
-	c.JSON(http.StatusOK, gin.H{"code": 200, "data": talks})
+
+	// 多取的那条只是"探路"的：说明后面还有 → 把它切掉，不返回给前端
+	hasMore := len(talks) > size
+	if hasMore {
+		talks = talks[:size]
+	}
+	pageResult(c, talks, hasMore)
 }
 
 // fillCounters 给一批说说补上点赞数（Redis）和评论数（MySQL 一条 GROUP BY）

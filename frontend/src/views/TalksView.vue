@@ -44,14 +44,33 @@ function goUser(id) {
   router.push('/user/' + id)
 }
 
-async function loadTalks() {
+// ---------- 分页状态 ----------
+const page = ref(1)            // 当前第几页
+const hasMore = ref(false)     // 后端说"后面还有没有"
+const loadingMore = ref(false) // 正在加载下一页（防止连点）
+
+// reset=true：从第 1 页重新拉（首次进页面 / 发完新说说后）
+// reset=false：只把"下一页"追加到列表后面
+async function loadTalks(reset = true) {
   try {
-    const res = await api.get('/api/talks')
+    if (reset) page.value = 1
+    const res = await api.get('/api/talks?page=' + page.value)
     // ...t 展开原字段，再补一个 _imgs 数组（下划线 = 前端自己加的，不是后端给的）
-    talks.value = res.data.map(t => ({ ...t, _imgs: parseImages(t) }))
+    const list = res.data.map(t => ({ ...t, _imgs: parseImages(t) }))
+    talks.value = reset ? list : talks.value.concat(list)
+    hasMore.value = res.has_more
   } catch (e) {
     ElMessage.error(e.message)
   }
+}
+
+// 点"加载更多"：页码 +1，拿到新一页追加到后面
+async function loadMoreTalks() {
+  if (loadingMore.value || !hasMore.value) return // 正在加载 / 没有更多，直接不理
+  loadingMore.value = true
+  page.value += 1
+  await loadTalks(false)
+  loadingMore.value = false
 }
 
 // ---------- 发布 ----------
@@ -378,5 +397,12 @@ onMounted(loadTalks) // 点赞记录不在这儿拉——交给上面的 watch�
 
     <!-- 空状态 -->
     <p v-if="talks.length === 0" class="empty-tip">还没有动态，来发第一条吧～</p>
+
+    <!-- 分页：后端说还有 → 显示"加载更多" -->
+    <div v-if="hasMore" class="load-more-wrap">
+      <button class="load-more" :disabled="loadingMore" @click="loadMoreTalks">
+        {{ loadingMore ? '加载中…' : '加载更多' }}
+      </button>
+    </div>
   </div>
 </template>

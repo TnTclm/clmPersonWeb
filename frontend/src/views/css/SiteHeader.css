@@ -257,6 +257,145 @@
   color: #e74c3c;
 }
 
+/* ---------- 未读提醒：铃铛 + 红点 + 通知面板 ---------- */
+.notify-wrap {
+  position: relative;      /* 通知面板的定位基准 */
+  display: flex;
+  align-items: center;
+}
+
+/* 铃铛按钮 */
+.notify-btn {
+  position: relative;      /* 红点相对它定位 */
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 1;
+  padding: 5px 7px;
+  border-radius: 999px;
+  transition: background-color 0.18s ease;
+}
+
+.notify-btn:hover {
+  background: rgba(13, 148, 136, 0.1);   /* 和导航胶囊同一个薄荷底 */
+}
+
+/* 红点：贴在铃铛右上角的小气泡 */
+.notify-badge {
+  position: absolute;
+  top: -1px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ef4444;     /* 提醒就该是红的，这里不跟主题色 */
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+}
+
+/* 通知面板（复用用户菜单的弹出动画 menu-pop） */
+.notify-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  width: 320px;
+  max-height: 380px;       /* 条数多了就滚动，不把页面撑爆 */
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.14);
+  padding: 6px;
+  z-index: 95;             /* 在遮罩(90)上面，不然点不到面板里的内容 */
+  animation: menu-pop 0.15s ease;
+}
+
+.notify-empty {
+  padding: 24px 0;
+  text-align: center;
+  font-size: 13px;
+  color: #aaa;
+}
+
+.notify-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px 8px;
+  border-radius: 10px;
+}
+
+.notify-item:hover {
+  background: #f7f8f8;
+}
+
+.notify-icon {
+  font-size: 16px;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+
+.notify-body {
+  flex: 1;
+  min-width: 0;            /* 关键：让下面的省略号生效（flex 子项默认不肯缩） */
+}
+
+.notify-line {
+  font-size: 13px;
+  color: #333;
+}
+
+.notify-text {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;     /* 太长的内容一行省略，别把面板撑变形 */
+}
+
+.notify-time {
+  margin-top: 3px;
+  font-size: 11px;
+  color: #aaa;
+}
+
+/* 有 talk_id 的通知可以点（跳转到对应说说） */
+.notify-item.can-go {
+  cursor: pointer;
+}
+
+/* 面板底部的"加载更多" */
+.notify-more {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 0;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: #0d9488;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.notify-more:hover:not(:disabled) {
+  background: rgba(13, 148, 136, 0.08);
+}
+
+.notify-more:disabled {
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+/* 深色头部（爱心页）上，铃铛的悬停底换成浅色 */
+.header-dark .notify-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
 /* ---------- 留言页专属：弱化成"浮在画面上的薄纱" ----------
    absolute 脱离文档流：不占高度，留言页整屏 100vh 全幅展开；
    全透明背景：只留一行字浮在樱花天空上，滚动时跟着滚走 */

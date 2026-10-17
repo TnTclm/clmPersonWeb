@@ -53,12 +53,35 @@ async function loadAll() {
     router.replace('/talks')
     return
   }
+  // 评论也分页：先拉第 1 页
+  await loadComments()
+}
+
+// ---------- 评论分页 ----------
+const commentPage = ref(1)          // 当前第几页评论
+const commentsHasMore = ref(false)  // 后面还有没有
+const loadingMoreComments = ref(false)
+
+async function loadComments(reset = true) {
   try {
-    const res = await api.get('/api/talks/' + route.params.id + '/comments')
-    comments.value = res.data
+    if (reset) commentPage.value = 1
+    const res = await api.get(
+      '/api/talks/' + route.params.id + '/comments?page=' + commentPage.value
+    )
+    comments.value = reset ? res.data : comments.value.concat(res.data)
+    commentsHasMore.value = res.has_more
   } catch (e) {
     ElMessage.error(e.message)
   }
+}
+
+// 点"加载更多评论"：页码 +1，追加到评论列表后面
+async function loadMoreComments() {
+  if (loadingMoreComments.value || !commentsHasMore.value) return
+  loadingMoreComments.value = true
+  commentPage.value += 1
+  await loadComments(false)
+  loadingMoreComments.value = false
 }
 
 // ---------- 恢复小红心（登录才有） ----------
@@ -192,6 +215,30 @@ onMounted(loadAll)
   border-color: #0d9488;
   color: #0d9488;
 }
+
+/* 评论区的"加载更多评论" */
+.tk-cmore {
+  display: block;
+  margin: 8px auto 10px;
+  padding: 5px 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #fff;
+  color: #666;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, color 0.18s ease;
+}
+
+.tk-cmore:hover:not(:disabled) {
+  border-color: #0d9488;
+  color: #0d9488;
+}
+
+.tk-cmore:disabled {
+  color: #bbb;
+  cursor: not-allowed;
+}
 </style>
 
 <template>
@@ -255,6 +302,16 @@ onMounted(loadAll)
             <button v-if="canDelete(cm)" class="tk-cdel" @click="removeComment(cm)">删除</button>
           </div>
           <p v-if="comments.length === 0" class="tk-cempty">还没有评论，来抢沙发～</p>
+
+          <!-- 评论分页：后面还有就显示 -->
+          <button
+            v-if="commentsHasMore"
+            class="tk-cmore"
+            :disabled="loadingMoreComments"
+            @click="loadMoreComments"
+          >
+            {{ loadingMoreComments ? '加载中…' : '加载更多评论' }}
+          </button>
 
           <div v-if="me" class="tk-cinput">
             <input
