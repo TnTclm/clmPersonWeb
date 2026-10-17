@@ -38,7 +38,8 @@ services:
 
   # ---------- 缓存 ----------
   redis:
-    image: redis:7-alpine
+    # 和本地开发环境保持一致：本地跑的是 redis:8（Redis 8.10.2）
+    image: redis:8
     container_name: clm-redis
     restart: unless-stopped
     volumes:
@@ -47,7 +48,8 @@ services:
 
   # ---------- 消息队列 ----------
   rabbitmq:
-    image: rabbitmq:3-management-alpine
+    # 和本地保持一致：本地 rabbitmq:management 实际是 4.3.6，所以用 4.x
+    image: rabbitmq:4-management
     container_name: clm-rabbit
     restart: unless-stopped
     environment:
